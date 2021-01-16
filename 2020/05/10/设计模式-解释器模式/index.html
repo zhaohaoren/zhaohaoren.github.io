@@ -1,0 +1,309 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=0.5"><link rel="stylesheet" href="/css/highlight/xcode.min.css"><link rel="stylesheet" href="/css/post.css"><link rel="icon" href="/img/favicon.png"><title>【设计模式】解释器模式</title><meta name="generator" content="Hexo 5.3.0"><link rel="alternate" href="/atom.xml" title="赵浩任的博客" type="application/atom+xml">
+</head><body>　　<div class="inner"><h2>【设计模式】解释器模式</h2><h1 id="【设计模式】解释器模式"><a href="#【设计模式】解释器模式" class="headerlink" title="【设计模式】解释器模式"></a>【设计模式】解释器模式</h1><p>本文主要介绍解释器模式的概念和用法。</p>
+<h2 id="模式背景"><a href="#模式背景" class="headerlink" title="模式背景"></a>模式背景</h2><p>类似于于Java，Cpp这类的语言，他们无法处理类似<code>1+2-3</code>这种语句的直接计算，但是如果我们需要这样的功能，该怎么实现呢？这就是需要解释器模式。这是一个比较复杂同时也相对比较冷门的设计模式，实际应用中很少，因为一般涉及到解释器模式的项目应该都是比较大的工程。</p>
+<p>如果我们用过Scala或者Python应该知道他们都带了一个Shell工具，我们可以直接在Shell中输入一些简单的语句，他们能帮我们自动计算好，比如下面所示：</p>
+<pre><code class="lang-shell">$ python
+Python 3.7.1 (default, Dec 14 2018, 13:28:58)
+[Clang 4.0.1 (tags/RELEASE_401/final)] :: Anaconda, Inc. on darwin
+Type &quot;help&quot;, &quot;copyright&quot;, &quot;credits&quot; or &quot;license&quot; for more information.
+&gt;&gt;&gt; 12 * 3 + 2
+38
+</code></pre>
+<p>像这种功能，如果使用Python语言编写的话，需要自己定义变量，然后再通过式子运算等一系列操作。但是Python Shell就可以很方便的求出结果。我们可以使用解释器模式来实现这种功能，可以粗略的说，解释器模式就是为了在当前的语言上层构建一个新的语言（只是这个语言都很简单），这套语言拥有自己的规则文法。</p>
+<h2 id="定义-amp-概念"><a href="#定义-amp-概念" class="headerlink" title="定义&amp;概念"></a>定义&amp;概念</h2><p>解释器模式：就是给定一个语言的文法表示，并且建立一个解释器，用来解释语言中的句子。解释器模式描述了怎样在有了一个简单的文法后，使用模式设计解释这些语句。解释器模式是一种类行为型模式。</p>
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>解释器模式比较复杂，我们奔着目的去：外部给了我们一套文法规则，以及一条语句。我们使用手头上的语言（比如Java）能够去解释这个语句（可以是按照语句执行具体操作指令，也可以是用自己的话翻译一下提供的语句）。</p>
+<p><strong>首先从语句表达式说起</strong></p>
+<p><code>1+2+3-4</code>  我们假设就给了这样的一条语句。一个表达式是由一系列<strong>终结符表达式</strong>和<strong>非终结符表达式</strong>组成。终结符就是最小的不可分割的单元，比如<code>3</code>,<code>+</code>这些符号都是终结符。非终结符则是相当于表达式的一个子句，以及这个表达式都可以算一个非终结符（或者叫非终结表达式），比如<code>1+2</code>算一个非终结符。</p>
+<p><strong>抽象语法树（AST）</strong></p>
+<p>我们可以通过给定的句子来构建一个抽象语法树，可以更直观的区分终结符表达式和非终结符表达式。比如上式子可以表示为：</p>
+<p> <img src="/Users/zhaohaoren/workspace/mycode/blog-docs/docs/设计模式/interpreter01.png" alt="image-20200826143546483" style="zoom: 67%;" /></p>
+<p>可以看到加减号连接着左右，所以他们所连接在一起为非终结的表达式。而数字都是终结表达式。</p>
+<p><strong>解释器模式</strong></p>
+<p>所谓解释器模式，就是外界给定的文法，我们写出的程序能够解释出这段文法的意思。所以我们首先要明白文法的具体规则，然后就是区分好里面的终结符表达式和非终结符表达式。终结符表达式和非终结符表达式的区分是解释器模式的重点，不能粗浅的认为加减号用来连接数字的所以它就是非终结表达式，数字不起到连接的作用就是终结表达式，实际使用中还需要灵活多变。</p>
+<p><strong>组成要素</strong></p>
+<ul>
+<li><p>抽象表达式（Abstract Expression）</p>
+<ul>
+<li>解释器统一抽象，约定解释器的解释操作，是终结符表达式和非终结符表达式的父类，主要包含解释方法 interpret()。</li>
+</ul>
+</li>
+<li><p>终结符表达式（Terminal  Expression）</p>
+<ul>
+<li>是抽象表达式的子类，用来实现文法中与终结符相关的操作，文法中的每一个终结符都有一个具体终结表达式与之相对应。</li>
+</ul>
+</li>
+<li><p>非终结符表达式（Nonterminal Expression）</p>
+<ul>
+<li>也是抽象表达式的子类，用来实现文法中与非终结符相关的操作，里面可以包含终结符表达式，也可以继续包含非终结符表达式，让下游去处理终结符表达式。</li>
+</ul>
+</li>
+<li><p>环境类（Context）</p>
+<ul>
+<li>通常包含各个解释器需要的数据或是公共的功能，一般用来传递被所有解释器共享的数据，后面的解释器可以从这里获取这些值。</li>
+</ul>
+</li>
+</ul>
+<h2 id="UML"><a href="#UML" class="headerlink" title="UML"></a>UML</h2><p><img src="/Users/zhaohaoren/workspace/mycode/blog-docs/docs/设计模式/interpreter02.png" alt="image-20200826173129765"></p>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><p>这里举一个例子<code>&quot;LOOP 2 PRINT i SPACE PRINT am SPACE PRINT justin BREAK END PRINT hello SPACE PRINT world&quot;</code>。意思很简单：<code>LOOP</code>循环打印2次<code>i am justin</code>，BREAK表示换行，然后接着输出<code>hello world</code>。</p>
+<ul>
+<li>第一步，分析文法整理出文法规则：</li>
+</ul>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>文法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>expression : command *</td>
+<td>一个表达式是多个命令组成的</td>
+</tr>
+<tr>
+<td>command : loop \</td>
+<td>primitive</td>
+<td>大写部分都是命令，命令分2块：LOOP以及一些基本命令</td>
+</tr>
+<tr>
+<td>loop : ‘LOOP number’ expression ‘END’</td>
+<td>一个LOOP命令的表达式，LOOP和END为一组成对出现</td>
+</tr>
+<tr>
+<td>primitive : ‘print string’ \</td>
+<td>‘space’ \</td>
+<td>‘break’</td>
+<td>基本命令：这三个基本命令可以作为不可分割的单元了</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>依据这规则我们可以区分出<strong>终结和非终结表达式</strong>：前三个都是非终结的，最后一个是终结的。</p>
+<ul>
+<li>第二步，设计Context类：</li>
+</ul>
+<pre><code class="lang-java">public class Context &#123;
+    //StringTokenizer将字符串分割为单个word，每个word叫做token
+    private StringTokenizer tokenizer;
+    //当前字符串标记
+    private String currentToken;
+
+    public Context(String text) &#123;
+        this.tokenizer = new StringTokenizer(text);
+        nextToken();
+    &#125;
+
+    //返回下一个标记
+    public String nextToken() &#123;
+        if (tokenizer.hasMoreTokens()) &#123;
+            currentToken = tokenizer.nextToken();
+        &#125; else &#123;
+            currentToken = null;
+        &#125;
+        return currentToken;
+    &#125;
+
+    //返回当前的标记
+    public String currentToken() &#123;
+        return currentToken;
+    &#125;
+
+    //跳过标记，说明这里语法有问题
+    public void skipToken(String token) &#123;
+        if (!token.equals(currentToken)) &#123;
+            System.out.println(&quot;错误提示：&quot; + currentToken + &quot;解释错误！&quot;);
+        &#125;
+        nextToken();
+    &#125;
+
+    //如果当前的标记是数字，返回其数组
+    public int currentNumber() &#123;
+        int number = 0;
+        try &#123;
+            number = Integer.parseInt(currentToken);
+        &#125; catch (NumberFormatException e) &#123;
+            System.err.println(&quot;错误提示：&quot; + e);
+        &#125;
+        return number;
+    &#125;
+&#125;
+</code></pre>
+<p>Context的类的作用主要就是处理字符串，提供一系列的方法方便我们获取当前处理到哪个字符命令上，以及跳过改名了，取的下一个命令等操作。</p>
+<ul>
+<li>第三步，定义<strong>抽象表达式</strong>：</li>
+</ul>
+<pre><code class="lang-java">public abstract class Node &#123;
+    //解释语句的方法
+    public abstract void interpret(Context context);
+    //执行命令
+    public abstract void execute();
+&#125;
+</code></pre>
+<ul>
+<li>第四步，定义终结符表达式：</li>
+</ul>
+<pre><code class="lang-java">// 基本命令，最简单的命令，终结符表达式
+public class PrimitiveCommandNode extends Node &#123;
+    private String name;
+    private String text;
+
+    @Override
+    public void interpret(Context context) &#123;
+        name = context.currentToken();
+        context.skipToken(name);
+        if (!name.equals(&quot;PRINT&quot;) &amp;&amp; !name.equals(&quot;BREAK&quot;) &amp;&amp; !name.equals(&quot;SPACE&quot;)) &#123;
+            System.err.println(&quot;非法命令！&quot;);
+        &#125;
+        if (name.equals(&quot;PRINT&quot;)) &#123;
+            text = context.currentToken();
+            context.nextToken();
+        &#125;
+    &#125;
+
+    @Override
+    public void execute() &#123;
+        if (name.equals(&quot;PRINT&quot;)) &#123;
+            System.out.print(text);
+        &#125; else if (name.equals(&quot;SPACE&quot;)) &#123;
+            System.out.print(&quot; &quot;);
+        &#125; else if (name.equals(&quot;BREAK&quot;)) &#123;
+            System.out.println();
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>我们对终结符表达式做了一个通用模板，终结符表达式涉及到了程序真正的输出，所有输出行为在execute中执行。一个PrimitiveCommandNode即命令和该命令对应的输出组成的一个tuple。</p>
+<ul>
+<li>第五步，定义非终结符表达式</li>
+</ul>
+<p>非终结符这里有三层：</p>
+<ol>
+<li>第一层表示一个子句，一个END结果我们可以看做是一个子句</li>
+<li>第二层是命令，从Context获取到当前的命令类型是普通命令，还是LOOP命令来创建下一个子级。</li>
+<li>第三层是循环，获取循环需要的信息，执行循环的逻辑。</li>
+</ol>
+<p>这三层将一个非终结符不断的拆分更细，一直到解释到非终结符上去。</p>
+<p><strong>ExpressionNode：</strong></p>
+<pre><code class="lang-java">public class ExpressionNode extends Node &#123;
+
+    //存储一个子表达式的命令
+    private ArrayList&lt;Node&gt; list = new ArrayList&lt;&gt;();
+
+    //第一级别解释，循环的取出所有的token
+    @Override
+    public void interpret(Context context) &#123;
+        while (true) &#123;
+            if (context.currentToken() == null) &#123;
+                //空的串，那就退出。
+                break;
+            &#125; else if (&quot;END&quot;.equals(context.currentToken())) &#123;
+                context.skipToken(&quot;END&quot;);
+                break;
+            &#125; else &#123;
+                Node commandNode = new CommandNode();
+                commandNode.interpret(context);
+                list.add(commandNode);
+            &#125;
+        &#125;
+    &#125;
+
+    @Override
+    public void execute() &#123;
+        Iterator iterator = list.iterator();
+        while (iterator.hasNext()) &#123;
+            ((Node) iterator.next()).execute();
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>这个Node主要就是不断遍历输入表达式的词项（token），然后交给<code>CommandNode</code>，让<code>CommandNode</code>来对命令做分类处理。最终处理完，会将所有的命令存在list中，我们只需要迭代执行这个list，将结果输出。</p>
+<p><strong>CommandNode：</strong></p>
+<pre><code class="lang-java">public class CommandNode extends Node &#123;
+    private Node node;
+
+    @Override
+    public void interpret(Context context) &#123;
+        if (context.currentToken().equals(&quot;LOOP&quot;)) &#123;
+            node = new LoopCommandNode();
+            node.interpret(context);
+        &#125; else &#123;
+            node = new PrimitiveCommandNode();
+            node.interpret(context);
+        &#125;
+    &#125;
+
+    @Override
+    public void execute() &#123;
+        node.execute();
+    &#125;
+&#125;
+</code></pre>
+<p>这个类的主要作用就是<code>ExpressionNode</code>遍历到了一个命令，给到该类来区分这个命令是普通命令还是LOOP命令。</p>
+<p><strong>LoopCommandNode：</strong></p>
+<pre><code class="lang-java">public class LoopCommandNode extends Node &#123;
+
+    private int number;
+    private Node commandNode;
+
+    @Override
+    public void interpret(Context context) &#123;
+        context.skipToken(&quot;LOOP&quot;);
+        number = context.currentNumber();
+        context.nextToken();
+        commandNode = new ExpressionNode();
+        commandNode.interpret(context);
+    &#125;
+
+    @Override
+    public void execute() &#123;
+        for (int i = 0; i &lt; number; i++) &#123;
+            commandNode.execute();
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>当命令是LOOP的时候，我们需要获取后面的一个数字表示要循环几次，然后还需要获取后面遍历的表达式，所以递归去使用<code>ExpressionNode</code>获取后面表达式，一旦遇到<code>END</code>这个递归栈就结束了，然后回到<code>ExpressionNode</code>处理下面的命令。</p>
+<ul>
+<li>最后测试</li>
+</ul>
+<pre><code class="lang-java">public class InterpreterDemo &#123;
+    public static void main(String[] args) &#123;
+        String text = &quot;LOOP 2 PRINT i SPACE PRINT am SPACE PRINT justin BREAK END PRINT hello SPACE PRINT world&quot;;
+        Context context = new Context(text);
+        Node node = new ExpressionNode();
+        node.interpret(context);
+        node.execute();
+    &#125;
+&#125;
+/** output:
+i am justin
+i am justin
+hello world
+*/
+</code></pre>
+<ul>
+<li>UML结构</li>
+</ul>
+<p><img src="/Users/zhaohaoren/workspace/mycode/blog-docs/docs/设计模式/interpreter03.png" alt="image-20200826174016951"></p>
+<blockquote>
+<p>这是书上的一个例子，个人觉得这个例子有点深了，看的有点晕晕乎乎的，对解释器模式的描述不是很直观。但是这个应该更贴近实际使用场景，所以还是用了这个例子。</p>
+</blockquote>
+<h2 id="优缺点"><a href="#优缺点" class="headerlink" title="优缺点"></a>优缺点</h2><h3 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h3><ul>
+<li>易于改变和扩展文法，实现文法比较容易。</li>
+<li>解释器扩展性好，如果添加新的表达式，只需要添加对应的终结和非终结表达式即可。</li>
+</ul>
+<h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><ul>
+<li>对于复杂文法难以维护。</li>
+<li>执行效率太低，里面存在大量循环和递归，执行速度可能会很慢。</li>
+</ul>
+<h2 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h2><ul>
+<li>可以将一个需要解释执行的语言中的句子表示为一个抽象语法树。</li>
+<li>一些重复出现的问题可以用一种简单的语言来表达。</li>
+<li>一个简单语法需要解释的场景。</li>
+</ul>
+<p>总之，这些场景其实也很特殊，一般项目中我们并不会用到，而且这个模式写起来也很复杂。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>解释器模式为自定义语言的设计和实现提供了一种解决方案，它用于定义一组文法规则并通过这组文法规则来解释语言中的句子。虽然解释器模式的使用频率不是特别高，但是它在<strong>正则表达式</strong>、<strong>XML文档解释</strong>等领域还是得到了广泛使用。</p>
+<h1 id="附"><a href="#附" class="headerlink" title="附"></a>附</h1><p>相关代码：<a href="https://github.com/zhaohaoren/design_pattern_tutorial">https://github.com/zhaohaoren/design_pattern_tutorial</a></p>
+<p>如有代码和文章问题，还请指正！感谢！</p>
+</div><script src="/js/highlight.min.js"></script><script src="/js/jquery.min.js"></script><script src="/js/main.js"></script></body></html>

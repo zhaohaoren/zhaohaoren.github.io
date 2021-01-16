@@ -1,0 +1,94 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=0.5"><link rel="stylesheet" href="/css/highlight/xcode.min.css"><link rel="stylesheet" href="/css/post.css"><link rel="icon" href="/img/favicon.png"><title>【设计模式】责任链模式</title><meta name="generator" content="Hexo 5.3.0"><link rel="alternate" href="/atom.xml" title="赵浩任的博客" type="application/atom+xml">
+</head><body>　　<div class="inner"><h2>【设计模式】责任链模式</h2><h1 id="【设计模式】责任链模式"><a href="#【设计模式】责任链模式" class="headerlink" title="【设计模式】责任链模式"></a>【设计模式】责任链模式</h1><p>本文主要介绍责任链模式的概念及用法。</p>
+<h2 id="模式背景"><a href="#模式背景" class="headerlink" title="模式背景"></a>模式背景</h2><p>这个模式的应用场景也很多，最常见的就是一个审批流程：一个事件触发了需要一级一级的往下传递到对应的人进行处理的。对于这种审批流程<strong>最糟糕的写法就是在一个类中使用很长的<code>if-else</code>判断链来进行判断</strong>。这种写法缺点很多：</p>
+<ol>
+<li>类职责过重，所有的审批流程都走该类，违反单一职责。</li>
+<li>如果需要修改审批流程，就一定需要修改这个类，违反开闭原则。</li>
+<li>模板僵化，不可定制，一旦这个流程确定了，客户单只有调用的份，无法自己定义审批流程。</li>
+</ol>
+<p>责任链模式就是为了处理这类链式流程问题的。</p>
+<h2 id="定义-amp-概念"><a href="#定义-amp-概念" class="headerlink" title="定义&amp;概念"></a>定义&amp;概念</h2><p><strong>责任链模式（Chain of Responsibility）</strong>：为了避免请求发送者与多个请求处理者耦合在一起，将所有请求的处理者<strong>通过前一对象记住其下一个对象的引用而连成一条链</strong>；当有请求发生时，可将请求沿着这条链传递，直到有对象处理它为止。</p>
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>责任链模式是一个相对简单的模式。目的是将上述的那一长串<code>if-else</code>调用链进行解耦。其做法：将所有的审批处理逻辑抽象出一个抽象单元，所有的审批员都继承这个单元。每个审批员内部持有一个下一个审批的对象。职责链模式可以是一个直线，也可以是一个环或者树，最常见的是直线结构。当事件触发了，依据客户端定制的职责链进行调用。</p>
+<p><strong>组成要素</strong></p>
+<ul>
+<li>抽象处理类<ul>
+<li>定义处理请求的接口的统一抽象。一般设计为抽象类，因为每一个处理者还需要有下一个处理者，所以在抽象处理类中定义一个下一个处理类的引用。</li>
+</ul>
+</li>
+<li>具体处理类<ul>
+<li>抽象处理类的实现，真正的处理者。其主要作用就2个：<strong>处理请求</strong>，<strong>转发请求</strong>。</li>
+<li>这些处理者以及其内部应用的下一个处理者连接起来形成一条链。</li>
+</ul>
+</li>
+</ul>
+<p>依据对请求处理的方式，职责链模式可以分为<strong>纯职责链</strong>和<strong>不纯职责链</strong>：</p>
+<ul>
+<li>纯职责链<ul>
+<li>要么处理请求，要么转发请求。不能处理一部分然后再转发。就是<strong>2个处理者处理的责任不能有交集。</strong></li>
+<li>请求必须被某一个处理者对象处理，不能没人接受。</li>
+</ul>
+</li>
+<li>不纯职责链<ul>
+<li>不纯的就很自由，请求可以被一个处理者处理了部分再传给下一个处理。</li>
+<li>请求可以不被任何人处理。</li>
+</ul>
+</li>
+</ul>
+<h2 id="UML"><a href="#UML" class="headerlink" title="UML"></a>UML</h2><p><img src="/Users/zhaohaoren/workspace/mycode/blog-docs/docs/设计模式/RespChain.png" alt="image-20200824130315727"></p>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><p>抽象处理类</p>
+<pre><code class="lang-java">public abstract class AbstractHandler &#123;
+    //下一个处理引用
+    protected AbstractHandler next;
+
+    public void setNext(AbstractHandler next) &#123;
+        this.next = next;
+    &#125;
+
+    public abstract void handleRequest(String request);
+&#125;
+</code></pre>
+<p>具体处理类</p>
+<pre><code class="lang-java">public class ConcreteHandler extends AbstractHandler &#123;
+    @Override
+    public void handleRequest(String request) &#123;
+        if (&quot;X&quot;.equals(request)) &#123;
+            System.out.println(&quot;i am X&quot;);
+        &#125; else &#123;
+            if (next == null) &#123;
+                System.out.println(&quot;no handler&quot;);
+                return;
+            &#125;
+            this.next.handleRequest(request);
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>客户端</p>
+<pre><code class="lang-java">AbstractHandler a, b;
+a = new ConcreteHandlerA();
+b = new ConcreteHandlerB();
+//构建链条结构: a-&gt;b
+a.setNext(b);
+//请求
+a.handleRequest(&quot;A&quot;);
+a.handleRequest(&quot;B&quot;);
+a.handleRequest(&quot;C&quot;);
+</code></pre>
+<h2 id="优缺点"><a href="#优缺点" class="headerlink" title="优缺点"></a>优缺点</h2><h3 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h3><ul>
+<li>解耦，请求的处理逻辑被拆分在各个处理类中。</li>
+<li>增加新的请求处理类很方便。</li>
+<li>增强给对象指派职责的灵活性。通过改变链内的成员或者调动它们的次序，允许动态地新增或者删除责任。</li>
+</ul>
+<h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><ul>
+<li>不能保证请求一定被接收。 </li>
+<li>如果构建职责链不恰当，可能会造成循环调用造成死循环，系统性能将受到一定影响。 </li>
+<li>可能不容易观察运行时的特征，在进行代码调试排错时不太方便。</li>
+</ul>
+<h2 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h2><p>审批流程，工单流程等等。这些业务场景都很鲜明。这种一个事件触发需要多个对象来处理的，并且存在处理层次顺序的场景尝试使用职责链。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>职责链的核心点就2个：</p>
+<ul>
+<li>抽象类，为所有的处理者提供统一访问入口。</li>
+<li>每个抽象类的具体实现类都有一个内置引用，来引用下一个处理者。</li>
+</ul>
+<p>链条的结构并不是在具体处理类中的，具体处理类只是一个未被初始化的该处理者的下一个处理者的引用。真正初始化这个职责链条是在外部进行的。</p>
+</div><script src="/js/highlight.min.js"></script><script src="/js/jquery.min.js"></script><script src="/js/main.js"></script></body></html>

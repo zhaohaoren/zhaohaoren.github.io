@@ -1,0 +1,186 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=0.5"><link rel="stylesheet" href="/css/highlight/xcode.min.css"><link rel="stylesheet" href="/css/post.css"><link rel="icon" href="/img/favicon.png"><title>【设计模式】适配器模式</title><meta name="generator" content="Hexo 5.3.0"><link rel="alternate" href="/atom.xml" title="赵浩任的博客" type="application/atom+xml">
+</head><body>　　<div class="inner"><h2>【设计模式】适配器模式</h2><h1 id="【设计模式】适配器模式"><a href="#【设计模式】适配器模式" class="headerlink" title="【设计模式】适配器模式"></a>【设计模式】适配器模式</h1><p>本文主要介绍：类适配器模式，双向适配器模式，缺省适配器模式。</p>
+<h2 id="模式背景"><a href="#模式背景" class="headerlink" title="模式背景"></a>模式背景</h2><p>在我们生活中就存在着很多适配器模式，比如电源适配器，最新的苹果耳机接口（共用充电口的那个），插座适配器。这些都是因为我们现有的一些物件和外界提供的物件无法正确匹配，当需要能使用对方的时候，就需要一个中间的适配器来适配他们。</p>
+<p>在开发中性质其实也是一样，我们现有的工程项目一直以来都依赖这一个老的模块（就像是我们2个孔的插座），现在因为某种原因我们要替换该模块使用一个别的模块（比如市面上有新的模块了，然后这个模块比老模块实现更好更强大），但是这个新模块的接口和我们原来使用的不一样（就像是我们一直用的2孔插座，现在眼前只有3孔插座）。这时候我们就需要一个适配器来让我当前的项目，适配到这个新模块上（我们要一个适配器，2孔的插上去就能再插3孔的了）。</p>
+<h2 id="定义-amp-概念"><a href="#定义-amp-概念" class="headerlink" title="定义&amp;概念"></a>定义&amp;概念</h2><p>将一个接口转换为客户端希望的另一个接口，使得那些接口不兼容的类可以一起工作，其别名为包装器（Wrapper）。适配器模式是一种<strong>类结构性模式</strong>，也可以是<strong>对象结构型模式</strong>。</p>
+<p>适配器模式可以分为<strong>对象适配器模式</strong>和<strong>类适配器模式</strong>。对象适配器中，适配器和适配者之间是关联关系。类适配器中，适配器和适配者之间是继承（或实现）关系。实际开发中<u>对象适配器的使用频率更高</u>。</p>
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>适配器模式通过增加一个新的适配器类来解决接口不兼容的问题，使得原来没有任何关系的类可以协同工作。</p>
+<p><strong>基本要素</strong></p>
+<ul>
+<li>适配者<ul>
+<li>就是我们实际想要使用模块，他可以是一个类或接口，也可以是一个对象，只是这个适配者我们不能直接使用。</li>
+</ul>
+</li>
+<li>适配器<ul>
+<li>具体的转换器，通过继承适配者，或者组合适配者，来调用适配者的方法。</li>
+</ul>
+</li>
+<li>目标抽象类<ul>
+<li>用来定义客户需要使用的接口，他可以是一个抽象类或者接口。</li>
+<li>他约束了适配器类的行为，同时也是为了方便系统对适配器类进行扩展（添加新的Adapter实现）。</li>
+</ul>
+</li>
+</ul>
+<h2 id="UML"><a href="#UML" class="headerlink" title="UML"></a>UML</h2><p><img src="D:\workspace\blog-docs\docs\设计模式\Adapter1.png" alt="Adapter1"></p>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><h3 id="对象适配器"><a href="#对象适配器" class="headerlink" title="对象适配器"></a>对象适配器</h3><p>适配器内部持有一个被适配的对象，然后通过这个对象类转发调用的。</p>
+<p><strong>具体需要被适配的类</strong> </p>
+<pre><code class="lang-java">public interface IAdaptee &#123;
+    void adapteeFunction();
+&#125;
+public class Adaptee implements IAdaptee &#123;
+    @Override
+    public void adapteeFunction() &#123;
+        // 客户端使用方 想要调用的方法
+        System.out.println(&quot;adaptee function&quot;);
+    &#125;
+&#125;
+</code></pre>
+<p><strong>客户端使用的接口</strong></p>
+<pre><code class="lang-java">public interface ITarget &#123;
+    void userFunction();
+&#125;
+</code></pre>
+<p><strong>适配器类（注意核心：内部组合的adaptee对象）</strong></p>
+<pre><code class="lang-java">class ObjectAdapter implements ITarget &#123;
+    /**内组合一个被适配的对象*/
+    Adaptee adaptee;
+    @Override
+    public void userFunction() &#123;
+        adaptee.adapteeFunction();
+    &#125;
+&#125;
+</code></pre>
+<h3 id="类适配器"><a href="#类适配器" class="headerlink" title="类适配器"></a>类适配器</h3><p>只是将对象适配器中组合关联的 被适配对象使用<strong>继承的方式</strong>来实现适配器类。</p>
+<p><strong>（注意核心：extends Adaptee类 ）</strong></p>
+<pre><code class="lang-java">class ClassAdapter extends Adaptee implements ITarget &#123;
+    @Override
+    public void userFunction() &#123;
+        this.adapteeFunction();
+    &#125;
+&#125;
+</code></pre>
+<h2 id="装饰模式区别"><a href="#装饰模式区别" class="headerlink" title="装饰模式区别"></a>装饰模式区别</h2><p>适配器模式的思想其实和装饰者模式很像，并且他们都属于结构型模式，很容易会混淆他们用法。他们实现的手法思想虽然相似，但是各自的目的却不一样。</p>
+<p><strong>适配器模式的目的：</strong>现有的这个接口挺好的，只是我们这边客户端无法兼容它，他<strong>强调在于适配</strong>，只是适配一下然后原样调用适配者方法，我们不会去修改原先的接口（当然你非要修改也拦不住你，但是修改了就不属于适配的思想了，<strong>适配器主要的工作应该是将原来无法兼容的接口，通过你的操作变成兼容的，本质上不修改原来接口的任何逻辑</strong>）。</p>
+<p><strong>装饰者模式的目的：</strong>现有的这个接口功能不够，我们希望对这个接口新加一些功能，对接口做扩展，他<strong>强调在于扩展</strong>。他会修改原先的接口实现。</p>
+<h2 id="优缺点"><a href="#优缺点" class="headerlink" title="优缺点"></a>优缺点</h2><h3 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h3><ul>
+<li>将目标类和适配者进行解耦，当需要新的适配的时候，只需要添加新的适配器，不需要修改代码。</li>
+<li>让同一个适配者类，可以在多个不同的系统中复用。提高了适配者的复用性。（因为市面上有好多转换器，所以我买手机买Type-C接口的都能找到对应的适配器来充电）</li>
+</ul>
+<h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><ul>
+<li>Java，C#这些单继承的语言，一次只能继承一个适配者类，不能同时适配多个适配者。</li>
+<li>适配者类不能是final的。</li>
+<li>即对使用的编程语言存在局限性。</li>
+</ul>
+<h2 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h2><ul>
+<li>系统需要使用现有的类，但现有的类却不兼容。</li>
+<li>需要建立一个可以重复使用的类，用于一些彼此关系不大的类，并易于扩展，以便于面对将来会出现的类。</li>
+<li>需要一个统一的输出接口，但是输入类型却不可预知。</li>
+</ul>
+<p><strong>实例</strong></p>
+<ul>
+<li>在系统重构的时候，发现以前人写的接口规范已经返回的数据有有问题，所以我重构了这些接口，但是老接口系统已经在用了，不能让前端再针对你的去全改下，这时候我就对我新写的接口加了一个适配层。这样老接口保留着，前端后面直接使用新的接口。</li>
+</ul>
+<h2 id="扩展"><a href="#扩展" class="headerlink" title="扩展"></a>扩展</h2><h3 id="双向适配器"><a href="#双向适配器" class="headerlink" title="双向适配器"></a>双向适配器</h3><p><strong>定义：</strong>在一个适配器中既包含用户端的方法，又包含被适配端的方法。使得通过该适配器可以当做A到B的适配，也能当做B到A的适配。</p>
+<p>即做了一个适配器：这个适配器是客户端对适配者的适配，也是适配者对客户端的适配，所以这个适配器中需要有客户端的引用，和适配者的引用。</p>
+<p><strong>实现</strong></p>
+<pre><code class="lang-java">class TwoWayAdapter implements IAdaptee, ITarget &#123;
+
+    private IAdaptee adaptee;
+    private ITarget target;
+        /**我们想给客户端用 就可以使用被适配的对象初始化它*/
+    public TwoWayAdapter(IAdaptee adaptee) &#123;
+        this.adaptee = adaptee;
+    &#125;
+        /**我们想让被适配的类使用客户端的，则反之*/
+    public TwoWayAdapter(ITarget target) &#123;
+        this.target = target;
+    &#125;
+
+    /**
+     * 给客户端用
+     * 可以作为为客户端 适配的适配器
+     */
+    @Override
+    public void adapteeFunction() &#123;
+        target.userFunction();
+    &#125;
+
+    /**
+     * 给被适配类用，被适配的类成了客户端
+     * 也可以作为为被适配器类 适配了客户端
+     */
+    @Override
+    public void userFunction() &#123;
+        adaptee.adapteeFunction();
+    &#125;
+&#125;
+</code></pre>
+<h3 id="缺省适配器"><a href="#缺省适配器" class="headerlink" title="缺省适配器"></a>缺省适配器</h3><p>这个也是使用很广泛的一个适配器模式：对于一个接口，我们不想实现这个接口所有的方法，可以使用一个抽象类来实现该接口并提供一个默认实现。然后再让子类去覆盖自己想要实现的方法。</p>
+<p><strong>这么做的好处：</strong></p>
+<p>当一个接口有很多方法的时候，我们项目中需要如果很多类需要实现这个接口的时候，那么就要每个类都要实现这个接口的所有方法，这么很费劲。可以在中间加入一个抽象类，这样具体的类只要覆盖这个抽象类就行了。</p>
+<p><strong>必要条件</strong></p>
+<ul>
+<li>一个接口，最好是有很多方法</li>
+<li>一个抽象类，实现该接口提供默认实现</li>
+<li>具体的业务类，继承抽象类覆盖所需要的逻辑</li>
+</ul>
+<p><strong>实现</strong></p>
+<pre><code class="lang-java">/**
+ * 一个很多方法的接口
+ */
+interface ServiceInterface &#123;
+    void f1();
+
+    void f2();
+
+    void f3();
+
+    void f4();
+&#125;
+
+/**
+ * 缺省适配器
+ * 使用抽象类适配一版本，提供接口默认实现
+ */
+abstract class AbastractServiceClass implements ServiceInterface &#123;
+    @Override
+    public void f1() &#123;
+        System.out.println(&quot;abs f1&quot;);
+    &#125;
+
+    @Override
+    public void f2() &#123;
+        System.out.println(&quot;abs f2&quot;);
+    &#125;
+
+    @Override
+    public void f3() &#123;
+        System.out.println(&quot;abs f3&quot;);
+    &#125;
+
+    @Override
+    public void f4() &#123;
+        System.out.println(&quot;abs f4&quot;);
+    &#125;
+&#125;
+
+/**
+ * 对应具体业务去实现对应的接口方法即可。
+ */
+class Service1 extends AbastractServiceClass &#123;
+    @Override
+    public void f1() &#123;
+        System.out.println(&quot;service 1&quot;);
+    &#125;
+&#125;
+
+class ServiceN extends AbastractServiceClass &#123;
+    @Override
+    public void f4() &#123;
+        System.out.println(&quot;service 4&quot;);
+    &#125;
+&#125;
+</code></pre>
+<h1 id="附"><a href="#附" class="headerlink" title="附"></a>附</h1><p>相关代码：<a href="https://github.com/zhaohaoren/design_pattern_tutorial">https://github.com/zhaohaoren/design_pattern_tutorial</a></p>
+<p>如有代码和文章问题，还请指正！感谢！</p>
+</div><script src="/js/highlight.min.js"></script><script src="/js/jquery.min.js"></script><script src="/js/main.js"></script></body></html>

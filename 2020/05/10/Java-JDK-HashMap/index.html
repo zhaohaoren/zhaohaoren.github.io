@@ -1,0 +1,587 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=0.5"><link rel="stylesheet" href="/css/highlight/xcode.min.css"><link rel="stylesheet" href="/css/post.css"><link rel="icon" href="/img/favicon.png"><title>【Java】HashMap源码分析</title><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML"></script><meta name="generator" content="Hexo 5.3.0"><link rel="alternate" href="/atom.xml" title="赵浩任的博客" type="application/atom+xml">
+</head><body>　　<div class="inner"><h2>【Java】HashMap源码分析</h2><p>HashMap虽然常用，但是内部隐藏了很多实现细节，有太多值得推敲的东西，这里尽量去收录HashMap所有涉及的相关知识点。</p>
+<a id="more"></a>
+<h1 id="数据结构-散列表"><a href="#数据结构-散列表" class="headerlink" title="数据结构-散列表"></a>数据结构-散列表</h1><p>先从数据结构说起，HashMap对照的是数据结构中的<strong>散列表</strong>结构。在数据结构中有一种结构叫<strong>字典</strong>。有的书上定义：“以集合为基础的一些元素的集合，每个元素都有一个对应的key。支持元素的存在判断，插入和删除三种运算的的抽象数据类型就叫做字典“。散列表是字典的一个形式。散列表将元素的key使用一个<strong>hash函数</strong>映射到一个表上去（可以理解为一个地址连续的数组）来存储元素。获取数据时，只需要将key使用同样的hash函数映射对应的位置获取数据就行了。</p>
+<pre><code>Address = Hash(key)
+</code></pre><p>但是key的数量要比计算机地址空间大很多，我们使用的hash函数必须是收敛的（即将一堆数据映射到限定大小范围内的地址空间中），因此肯定会存在冲突（2个不同的key使用hash method计算出同一个结果，有的地方也叫hash碰撞）。所以实现这样的一个散列表引出2个问题：</p>
+<ol>
+<li>对于给定的k-v对，找出一个合适的hash函数，能够使得k计算结果分布均匀，并且这个函数还不能太复杂。</li>
+<li>hash冲突不可以避免，那在发生冲突时如何解决冲突。</li>
+</ol>
+<h2 id="常用的散列函数"><a href="#常用的散列函数" class="headerlink" title="常用的散列函数"></a>常用的散列函数</h2><ol>
+<li>除留余数法</li>
+<li>数字分析法</li>
+<li>平方取中法</li>
+<li>折叠法</li>
+</ol>
+<p>这里面只列举了一些简单的常见的hash函数，具体使用什么样的hash函数取决于你的数据性质。我们应当针对我们的数据选用合适的hash函数。</p>
+<h2 id="常见的冲突解决策略"><a href="#常见的冲突解决策略" class="headerlink" title="常见的冲突解决策略"></a>常见的冲突解决策略</h2><h3 id="闭散列"><a href="#闭散列" class="headerlink" title="闭散列"></a>闭散列</h3><p>发生冲突的关键码存储在表中另一个槽内。具体方法有：</p>
+<ol>
+<li>线性探查法</li>
+<li>二次探查法</li>
+<li>双散列法</li>
+</ol>
+<h3 id="开散列"><a href="#开散列" class="headerlink" title="开散列"></a>开散列</h3><p>发生冲突的关键码存储在散列表主表之外。具体方法有：</p>
+<ol>
+<li>拉链法</li>
+<li>桶式散列</li>
+</ol>
+<h1 id="HashMap源码"><a href="#HashMap源码" class="headerlink" title="HashMap源码"></a>HashMap源码</h1><p>HashMap在jdk集合中算一个很重要的知识点，面试也老爱问，在阅读HashMap的源码中，发现了很多亮点（算法的巧妙运用以及一些思想），但是不是总能久记不忘，这里写一篇记录下所有的分析过程，以及那些亮点。本文主要就JDK1.8做的分析，1.7只是面试可能需要对比做的捎带，本着对技术偏喜新厌旧的原则，就不分析1.7的了，对比的那些就是网上搜罗的，反正也没多少，个人觉得看1.8的完全不要再管1.7了。</p>
+<p><strong>HashMap的特性</strong></p>
+<ul>
+<li>key和value可以为null</li>
+<li>线程不安全。如果需要满足线程安全，可以用 Collections的synchronizedMap方法使HashMap具有线程安全的能力，或者使用ConcurrentHashMap。</li>
+</ul>
+<p><strong>数据结构概览</strong></p>
+<p>hashmap基本结构是基于散列表这一数据结构。采用的是数组+链表的方式存储元素。jdk8之后，引入了红黑树来优化链表过长的情况。</p>
+<p><img src=":java-jdk-hashmap/ds.png" alt=""></p>
+<p>如图所示，我们将1-16这个数组成为哈希表（hash table，不是jdk里面的HashTable！），数组的每一块地址空间称为一个槽（bin）。</p>
+<h2 id="源码分析（基于1-8）"><a href="#源码分析（基于1-8）" class="headerlink" title="源码分析（基于1.8）"></a>源码分析（基于1.8）</h2><h3 id="类图"><a href="#类图" class="headerlink" title="类图"></a>类图</h3><p><img src=":java-jdk-hashmap/HashMap.png" alt="HashMap"></p>
+<h3 id="构造"><a href="#构造" class="headerlink" title="构造"></a>构造</h3><p>这是使用hashmap的第一步，hashmap有4个构造函数。</p>
+<pre><code class="lang-java">public HashMap(int initialCapacity, float loadFactor);
+public HashMap(int initialCapacity);
+public HashMap();
+public HashMap(Map&lt;? extends K, ? extends V&gt; m);
+</code></pre>
+<p>通过构造函数我们可以看到hashmap的几个很重要的属性（也可以称为参数，更贴切）。这些参数对hashmap的性能有很大的影响。在分析构造函数之前我们有必要先了解这些参数：</p>
+<pre><code class="lang-java">//初始容量 默认16
+static final int DEFAULT_INITIAL_CAPACITY = 1 &lt;&lt; 4; // aka 16
+//负载因子 默认0.75
+static final float DEFAULT_LOAD_FACTOR = 0.75f;
+//阈值
+int threshold;
+</code></pre>
+<h4 id="性能因子"><a href="#性能因子" class="headerlink" title="性能因子"></a>性能因子</h4><h5 id="初始容量initial-capacity"><a href="#初始容量initial-capacity" class="headerlink" title="初始容量initial capacity"></a>初始容量initial capacity</h5><ul>
+<li>默认值为<strong><code>16</code></strong>，并且源码注释特别指出：<strong><u>该数必须是2的次幂！</u></strong>（原因后面会分析到）</li>
+</ul>
+<p>初始容量就是hashmap中上图那个哈希表的长度。如果该长度过长，则会浪费空间，如果该长度过短，则会造成大量的hash冲突，降低put和get的效率。</p>
+<h5 id="负载因子loadFactor"><a href="#负载因子loadFactor" class="headerlink" title="负载因子loadFactor"></a>负载因子loadFactor</h5><ul>
+<li><strong>默认值为<code>0.75</code>。</strong></li>
+</ul>
+<p>描述hashmap被填满的程度的系数。该负载因子越大，在每次扩容前所能容纳的键值对个数越多。而越多则可能会导致碰撞越多。但是太小，会导致频繁的扩容内存操作，性能更差。所以需要一个折中的值。</p>
+<p>负载因子的存在其实是为了让hashmap的hash表可以更加均匀的存放存入的元素（最理想的结果是一个拉链也没有，每个槽刚好就一个元素）。这样查询的时候可以提供最高的性能O(1)级别，时间复杂度是最低的。</p>
+<p><strong><u>至于该值为什么是0.75?</u></strong> 因为篇幅比较长，我在另一篇<a href="">《hashmap负载因子为什么是0.75》</a>做了解答。<u><strong><em>【#1. 为什么是0.75】</em></strong></u></p>
+<h5 id="阈值threshold"><a href="#阈值threshold" class="headerlink" title="阈值threshold"></a>阈值threshold</h5><ul>
+<li>该值为 <strong><code>capacity * load factor</code></strong></li>
+</ul>
+<p>表示当hashmap存入多少元素的时候，就需要该对hash表进行扩容。</p>
+<h4 id="最简单的构造函数"><a href="#最简单的构造函数" class="headerlink" title="最简单的构造函数"></a>最简单的构造函数</h4><pre><code class="lang-java">public HashMap() &#123;
+    this.loadFactor = DEFAULT_LOAD_FACTOR; // DEFAULT_LOAD_FACTOR = 0.75f;
+&#125;
+</code></pre>
+<p>只设置了一下负载因子，其他的都是使用的默认值。</p>
+<h4 id="带调优参数的构造函数"><a href="#带调优参数的构造函数" class="headerlink" title="带调优参数的构造函数"></a>带调优参数的构造函数</h4><pre><code class="lang-java">public HashMap(int initialCapacity, float loadFactor) &#123;
+    if (initialCapacity &lt; 0)
+        throw new IllegalArgumentException(&quot;Illegal initial capacity: &quot; +
+                                           initialCapacity);
+    if (initialCapacity &gt; MAXIMUM_CAPACITY)
+        initialCapacity = MAXIMUM_CAPACITY;
+    if (loadFactor &lt;= 0 || Float.isNaN(loadFactor))
+        throw new IllegalArgumentException(&quot;Illegal load factor: &quot; +
+                                           loadFactor);
+    //主要是这里                                       
+    this.loadFactor = loadFactor;
+    this.threshold = tableSizeFor(initialCapacity);
+&#125;
+</code></pre>
+<p>主要校验了一下传来参数：初始容量，负载因子，并设置到hashmap的属性上。并且在设置阈值的时候，并不是直接赋值的，而是使用通过tableSizeFor方法计算后的值。</p>
+<p>注意一点：我们这里并没有设置初始容量直接到内部的属性上，而是<strong>预先设置到了阈值上</strong>。这是为啥呢？因为我们构造函数的时候是不会申请内存的，申请内存的操作是在put的时候resize里面进行的，但是我们hashmap中又没有定义一个属性来存储我们设置的值，所以就使用暂存在threshold上。这么写估计是作者希望减少一个内置的属性，毕竟如果去单独定义这个属性使用的频率会比较低，而且在初始化完成后，我们也不需要再通过属性来获取，而是直接通过数组的length来获取。<u><strong><em>【#2. 为什么构造函数预先设置到阈值】</em></strong></u></p>
+<h5 id="tableSizeFor解析"><a href="#tableSizeFor解析" class="headerlink" title="tableSizeFor解析"></a><strong>tableSizeFor解析</strong></h5><pre><code class="lang-java">static final int tableSizeFor(int cap) &#123;
+    int n = cap - 1;
+    n |= n &gt;&gt;&gt; 1;
+    n |= n &gt;&gt;&gt; 2;
+    n |= n &gt;&gt;&gt; 4;
+    n |= n &gt;&gt;&gt; 8;
+    n |= n &gt;&gt;&gt; 16;
+    return (n &lt; 0) ? 1 : (n &gt;= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
+&#125;
+</code></pre>
+<p>该函数的作用其实就是依据给定值，返回大于等于该给定值，并距离最近的2的次幂数。（比如给1返2，给3返4，给5返8等）。</p>
+<p>上面具体的计算逻辑使用一个例子可以很清楚的看到这些位运算做了什么：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>编码</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0100 0000 0000 0000 0000 0000 0000 1000</td>
+<td>假设用户设置了该cap</td>
+</tr>
+<tr>
+<td>0<strong><u><font color='red'>10</font></u></strong>0 0000 0000 0000 0000 0000 0000 0111</td>
+<td>-1操作，n = cap -1</td>
+</tr>
+<tr>
+<td>0<strong><u><font color='red'>01</font></u></strong>0 0000 0000 0000 0000 0000 0000 0011</td>
+<td>无符号右移一位，n &gt;&gt;&gt; 1</td>
+</tr>
+<tr>
+<td>0<strong><u><font color='red'>11</font></u></strong>0 0000 0000 0000 0000 0000 0000 0111</td>
+<td>n &#124;= n&gt;&gt;&gt;1</td>
+</tr>
+<tr>
+<td>0<strong><u><font color='red'>001 1</font></u></strong>000 0000 0000 0000 0000 0000 0001</td>
+<td>n&gt;&gt;&gt;2</td>
+</tr>
+<tr>
+<td>0<strong><u><font color='red'>111 1</font></u></strong>000 0000 0000 0000 0000 0000 0111</td>
+<td>n &#124;= n &gt;&gt;&gt; 2</td>
+</tr>
+<tr>
+<td>0<u><strong><font color='red'>000 0111 1</font></strong></u>000 0000 0000 0000 0000 0000</td>
+<td>n &gt;&gt;&gt; 4</td>
+</tr>
+<tr>
+<td>0<strong><u><font color='red'>111 1111 1</font></u></strong>000 0000 0000 0000 0000 0111</td>
+<td>n &#124;= n &gt;&gt;&gt; 4</td>
+</tr>
+<tr>
+<td>0<strong><u><font color='red'>000 0000 0111 1111 1</font></u></strong>000 0000 0000 0000</td>
+<td>n &gt;&gt;&gt; 8</td>
+</tr>
+<tr>
+<td>0<strong><u><font color='red'>111 1111 1111 1111 1</font></u></strong>000 0000 0000 0111</td>
+<td>n &#124;= n &gt;&gt;&gt; 8</td>
+</tr>
+<tr>
+<td>0<strong><u><font color='red'>000 0000 0000 0000 0111 1111 1111 1111</font></u></strong></td>
+<td>n &gt;&gt;&gt; 16</td>
+</tr>
+<tr>
+<td>0<strong><u><font color='red'>111 1111 1111 1111 1111 1111 1111 1111</font></u></strong></td>
+<td>n &#124;= n &gt;&gt;&gt; 16</td>
+</tr>
+<tr>
+<td>1000 0000 0000 0000 0000 0000 0000 0000</td>
+<td>n+1</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>可以看出来，每一次右移都是为了让第一个出现1的高位后面都变成1，从1开始变位2个，然后再以这2个的基础变位4个，4个变8个，直到16则可以<strong>将一个4字节的int数字从它的第一个高位开始后面的位置全部的变成1</strong>。这时候我们再加1就得到了给定值离它最近的那个2的次幂数，其幂就是原来数的最高位的前一位或者自身（如果本书就是2的次幂的话）。</p>
+<p>其中，第一步我们先做了减一的操作，这是为了让本身就是2的次幂的数，返回的就是自己，比如给值8，如果不减一那么结果就是16，这显然不是我们想要的。<u><strong><em>【#3. 为什么tableSizeFor的cap要先减一】</em></strong></u></p>
+<p>最后return的时候，我们会判断是否大于了hashmap内置的最大容量，如果大于了则就设置为最大容量。</p>
+<p><u><strong><em>【#4. tableSizeFor做了什么？】</em></strong></u></p>
+<h4 id="设置初始容量的构造函数"><a href="#设置初始容量的构造函数" class="headerlink" title="设置初始容量的构造函数"></a>设置初始容量的构造函数</h4><pre><code class="lang-java">public HashMap(int initialCapacity) &#123;
+    this(initialCapacity, DEFAULT_LOAD_FACTOR);
+&#125;
+</code></pre>
+<p>其本质也是调用的是上面那个，只是负载因子使用的是默认的0.75。</p>
+<p>这本应该是hashmap应该最常用的构造函数，阿里巴巴代码规范里面有相应的说明：</p>
+<p><img src=":java-jdk-hashmap/al.png" alt=""></p>
+<p>至于为什么是那个公式，后面我们也会介绍。这里可以去看下一个<a href="https://zhuanlan.zhihu.com/p/39924972">有趣的小实验</a>。</p>
+<h4 id="map构造新map的构造"><a href="#map构造新map的构造" class="headerlink" title="map构造新map的构造"></a>map构造新map的构造</h4><pre><code class="lang-java">public HashMap(Map&lt;? extends K, ? extends V&gt; m) &#123;
+    this.loadFactor = DEFAULT_LOAD_FACTOR;
+    putMapEntries(m, false);
+&#125;
+</code></pre>
+<p>这个构造使用频率相对较低。</p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>通过上面的构造可以发现，HashMap对于内部的hash表示<strong>采用懒加载的</strong>，在没有开始存入元素前，只是定义了一下内部的一些设置参数。</p>
+<h3 id="put流程"><a href="#put流程" class="headerlink" title="put流程"></a>put流程</h3><p>put方法如下</p>
+<pre><code class="lang-java">public V put(K key, V value) &#123;
+    return putVal(hash(key), key, value, false, true);
+&#125;
+</code></pre>
+<h4 id="HashMap的hash-函数"><a href="#HashMap的hash-函数" class="headerlink" title="HashMap的hash()函数"></a>HashMap的hash()函数</h4><pre><code class="lang-java">static final int hash(Object key) &#123;
+    int h;
+    return (key == null) ? 0 : (h = key.hashCode()) ^ (h &gt;&gt;&gt; 16);
+&#125;
+</code></pre>
+<p>通过该hash函数主要的目的是将hashcode进一步进行<code>位干扰</code>。hashcode对于Object来说是物理地址转换来的一个整数，但是考虑到用户重写了hashcode方法，但不是很好的情况的话，那么会严重增大key的碰撞率。</p>
+<p><strong>具体做法：</strong>将key的hashcode值的高16位和低16位进行亦或。</p>
+<p><u><strong><em>【#5. 为什么要进行位干扰？】</em></strong></u></p>
+<p>这首先取决于我们hashmap的取模算法：(len - 1) &amp; hash，即将hashcode值和hash表长度-1做与运算。那么对于最后取模的结果影响因子永远都是hashcode值的低位。我们希望我们使用的hashcode值能充分利用好高位和低位的特性，所以将高位16位和低位做了一个亦或。这样新的hash值低16位也能保有了高位的信息了。</p>
+<p>举个例子：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>原HashCode</th>
+<th>111 0100 1000 0110 1000 1001 1000 0000</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>无符号右移16位</td>
+<td>000 0000 0000 0000 0111 0100 1000 0110</td>
+</tr>
+<tr>
+<td>异或运算</td>
+<td>111 0100 1000 0110 1111 1101 0000 0110</td>
+</tr>
+<tr>
+<td>len-1</td>
+<td>000 0000 0000 0000 0000 0000 0000 1111</td>
+</tr>
+<tr>
+<td>没干绕的运算</td>
+<td>000 0000 0000 0000 0000 0000 0000 0000</td>
+</tr>
+<tr>
+<td>干扰后的与运算</td>
+<td>000 0000 0000 0000 0000 0000 0000 0110</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>干扰后高位的信息就影响到了最后的取模结果了。</p>
+<p><strong>总的来说，干扰主要就是能充分利用好hashcode的整体信息，将高位的信息传播到低位上去（因为hashmap取模算法的限制）。这样做可以进一步降低碰撞的几率。</strong></p>
+<h4 id="再看看putVal"><a href="#再看看putVal" class="headerlink" title="再看看putVal"></a>再看看putVal</h4><pre><code class="lang-java">final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
+               boolean evict) &#123;
+    Node&lt;K,V&gt;[] tab; Node&lt;K,V&gt; p; int n, i;
+    // 如果hash表为空，初始化下表
+    if ((tab = table) == null || (n = tab.length) == 0)
+        n = (tab = resize()).length;
+    // hash值和hash表长度-1 做与运算 计算出来的位置，判断上面有没有元素
+    if ((p = tab[i = (n - 1) &amp; hash]) == null)
+        //没有元素，直接插入节点
+        tab[i] = newNode(hash, key, value, null);
+    else &#123;
+        //已经存在元素，则走判断逻辑。// p 为该table位置上已经存在的元素
+        Node&lt;K,V&gt; e; K k;
+        if (p.hash == hash &amp;&amp;
+            ((k = p.key) == key || (key != null &amp;&amp; key.equals(k))))
+            // 判断得插入的元素key和当前位置上的元素相同。则让e引用 原位置上的node
+            e = p;
+        else if (p instanceof TreeNode)
+            // 如果发现table处位置已经是TreeNode了，就按照树的形式put
+            e = ((TreeNode&lt;K,V&gt;)p).putTreeVal(this, tab, hash, key, value);
+        else &#123;
+            // 如果和hash表元素不一样，则开始拉链以及后面可能的树化
+            for (int binCount = 0; ; ++binCount) &#123; // 一个死循环，遍历当前位置上的拉链。当前判断节点为e
+                if ((e = p.next) == null) &#123;
+                    // 如果遍历到链条的末尾了，就创建新node加进去
+                    p.next = newNode(hash, key, value, null);
+                    // 此时我们判断下，遍历了多少次了，如果大于等于8-1，那么说明就要转为红黑树
+                    if (binCount &gt;= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                        treeifyBin(tab, hash);
+                    //完成
+                    break;
+                &#125;
+                if (e.hash == hash &amp;&amp;
+                    ((k = e.key) == key || (key != null &amp;&amp; key.equals(k))))
+                    // 如果在这中间发现了key重复的，就退出。
+                    break;
+                //处理下一个
+                p = e;
+            &#125;
+        &#125;
+        // 上面处理完了，此时的e指向的是该元素所应该在的位置。
+        if (e != null) &#123; // existing mapping for key
+            V oldValue = e.value;
+            // 如果设置了替换老的值 或者 老的值为null
+            if (!onlyIfAbsent || oldValue == null)
+                //将新值替换
+                e.value = value;
+
+            afterNodeAccess(e);
+            // 返回旧的值
+            return oldValue;
+        &#125;
+    &#125;
+    //hashmap变化计数器+1
+    ++modCount;
+    //这时候检验hashmap是否超过阈值了，超过就扩容
+    if (++size &gt; threshold)
+        resize();
+    afterNodeInsertion(evict);
+    return null;
+&#125;
+</code></pre>
+<p>大致流程如下</p>
+<p><img src=":java-jdk-hashmap/flow.png" alt=""></p>
+<p>这里面有下面几个重点：</p>
+<h5 id="hashmap取模算法"><a href="#hashmap取模算法" class="headerlink" title="hashmap取模算法"></a><strong>hashmap取模算法</strong></h5><pre><code class="lang-java">p = tab[i = (n - 1) &amp; hash] //n为当前hash表的长度
+</code></pre>
+<p>n-1和hash做与运算可以保证，最后的结果等会散列到0-n的地址空间上。并且位运算的计算效率高。</p>
+<h5 id="resize-扩容-amp-初始化方法"><a href="#resize-扩容-amp-初始化方法" class="headerlink" title="resize()扩容&amp;初始化方法"></a>resize()扩容&amp;初始化方法</h5><pre><code class="lang-java">final Node&lt;K,V&gt;[] resize() &#123;
+    Node&lt;K,V&gt;[] oldTab = table;
+    //因为要进行初始化/扩容，所以这两个是原始的初始容量和阈值
+    int oldCap = (oldTab == null) ? 0 : oldTab.length;
+    int oldThr = threshold;
+    int newCap, newThr = 0;
+    if (oldCap &gt; 0) &#123;
+        // 如果原始容量大于0 说明这次是扩容操作
+        if (oldCap &gt;= MAXIMUM_CAPACITY) &#123;
+            //检验下是否达到了最大的容量，达到就不扩容了。
+            threshold = Integer.MAX_VALUE;
+            return oldTab;
+        &#125;
+        // 检验下扩容2倍后是否达到最大容量，如果没有达到就扩容2倍
+        else if ((newCap = oldCap &lt;&lt; 1) &lt; MAXIMUM_CAPACITY &amp;&amp;
+                 oldCap &gt;= DEFAULT_INITIAL_CAPACITY)
+            //扩容2倍
+            newThr = oldThr &lt;&lt; 1; // double threshold
+    &#125;
+    // 如果原来的阈值大于0 就将其设置为新的容量大小（这里主要来源是构造函数里面tableSizeFor设置的是该值）
+    else if (oldThr &gt; 0) // initial capacity was placed in threshold
+        newCap = oldThr;
+    else &#123;               // zero initial threshold signifies using defaults
+        //如果该值为0，那么全部使用默认去构造他，因为他一定使用了无参的默认构造
+        newCap = DEFAULT_INITIAL_CAPACITY;
+        newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
+    &#125;
+    if (newThr == 0) &#123;
+        // 如果上面走了一轮了 发现没有设置新的阈值，那么就是上面oldThr &gt; 0的情况了，这时候这里设置下新的阈值。
+        float ft = (float)newCap * loadFactor;
+        newThr = (newCap &lt; MAXIMUM_CAPACITY &amp;&amp; ft &lt; (float)MAXIMUM_CAPACITY ?
+                  (int)ft : Integer.MAX_VALUE);
+    &#125;
+
+    threshold = newThr;
+    //申请新的内存空间
+    @SuppressWarnings(&#123;&quot;rawtypes&quot;,&quot;unchecked&quot;&#125;)
+    Node&lt;K,V&gt;[] newTab = (Node&lt;K,V&gt;[])new Node[newCap];
+    table = newTab;
+    if (oldTab != null) &#123;
+        // 如果原来有表，那么久开始迁移表里面的数据
+        for (int j = 0; j &lt; oldCap; ++j) &#123;
+            Node&lt;K,V&gt; e;
+            if ((e = oldTab[j]) != null) &#123;
+                oldTab[j] = null;
+                if (e.next == null)
+                    //该位置原来只有一个node，直接重新散列到新位置
+                    newTab[e.hash &amp; (newCap - 1)] = e;
+                else if (e instanceof TreeNode)
+                    //如果是树，就使用树的散列操作。分成2个树，而且如果树里面node小于6的时候会再转为链表。
+                    ((TreeNode&lt;K,V&gt;)e).split(this, newTab, j, oldCap);
+                else &#123; // preserve order
+                    //原来位置上是一个链表，就要将该链表拆成2份，一份还是在原来位置，一份会在其2倍便宜的高位。
+                    // l 代表低位
+                    Node&lt;K,V&gt; loHead = null, loTail = null;
+                    // h 代表高位
+                    Node&lt;K,V&gt; hiHead = null, hiTail = null;
+                    Node&lt;K,V&gt; next;
+                    //遍历链表
+                    do &#123;
+                        next = e.next;
+                        //这个其实就是判断该节点是在原位置还是在下一个便宜位置的。
+                        if ((e.hash &amp; oldCap) == 0) &#123;
+                            //在原位置
+                            if (loTail == null)
+                                loHead = e;
+                            else
+                                loTail.next = e;
+                            loTail = e;
+                        &#125;
+                        else &#123;
+                            //不在原位置，在其偏移位置
+                            if (hiTail == null)
+                                hiHead = e;
+                            else
+                                hiTail.next = e;
+                            hiTail = e;
+                        &#125;
+                    &#125; while ((e = next) != null);
+                    //拆分后的链表放到新的位置上去
+                    if (loTail != null) &#123;
+                        loTail.next = null;
+                        newTab[j] = loHead;
+                    &#125;
+                    if (hiTail != null) &#123;
+                        hiTail.next = null;
+                        newTab[j + oldCap] = hiHead;
+                    &#125;
+                &#125;
+            &#125;
+        &#125;
+    &#125;
+    return newTab;
+&#125;
+</code></pre>
+<p>这也是一个很关键的函数。其主要目的是初始化内部的hash表，或者做2倍扩容。并且设置好初始化或者扩容后的初始容量和阈值的值。</p>
+<p>这里面有下面几个关键的地方</p>
+<h6 id="设置-threshold和newCap"><a href="#设置-threshold和newCap" class="headerlink" title="设置 threshold和newCap"></a>设置 threshold和newCap</h6><p>在这里面我们先计算出我们扩容后这些属性的值之后才申请数组内存的。在计算过程中，要考虑到边界问题（是否超过了最大的容量）。</p>
+<h6 id="链表的再散列"><a href="#链表的再散列" class="headerlink" title="链表的再散列"></a>链表的再散列</h6><p>当我们扩容后需要对原来的链表再散列。这里主要说下原来是链表的情况（红黑树后期会单独讲，其他的很简单看代码就明白了）。</p>
+<p>首先明白一点：扩容后，因为我们设计的原因，原来的拉链里面的node会重新散列的位置也只有2处：原来的位置，原来位置2倍的偏移位置。</p>
+<p>为什么呢？举个例子：</p>
+<p>扩容前：</p>
+<pre><code>1010 1001 
+</code></pre><p>&amp; 0000 1111 （16-1）</p>
+<p>=  0000 1001 </p>
+<p>扩容后：</p>
+<pre><code>101**&lt;font color=&#39;red&#39;&gt;0&lt;/font&gt;** 1001 
+</code></pre><p>&amp; 000<strong><font color='red'>1</font></strong> 1111 （32-1）</p>
+<p>=  0000 1001 </p>
+<p>我们可以看到扩容后，其实和数组长度掩码做运算其实就是多了一个1位（红色加粗）。这个1位和原来的hash值的&amp;结果，决定了答案只有2种：0000 1001 / 0001 10001。这2个值差的就是一个2倍偏移位置（即原来的位置+扩容扩大的长度）</p>
+<p>所以影响到位置变不变的是原来的hash值中的绿色加粗的那一位（如果这个位置是0，那么位置就不变，如果那个位置是1，那么就偏移）。</p>
+<h6 id="什么时候进行树化"><a href="#什么时候进行树化" class="headerlink" title="什么时候进行树化"></a>什么时候进行树化</h6><p>红黑树相关的内容我们这里不多讲，但是hashmap什么时候转为红黑树有需要注意的点。</p>
+<p>先看下树化的方法</p>
+<pre><code class="lang-java">final void treeifyBin(Node&lt;K,V&gt;[] tab, int hash) &#123;
+    int n, index; Node&lt;K,V&gt; e;
+    //1
+    if (tab == null || (n = tab.length) &lt; MIN_TREEIFY_CAPACITY) //MIN_TREEIFY_CAPACITY =64
+        resize();
+    else if ((e = tab[index = (n - 1) &amp; hash]) != null) &#123;
+        ...
+    &#125;
+&#125;
+</code></pre>
+<p>从上面可以看出，链表转为红黑树需要满足2个条件</p>
+<ul>
+<li>链表长度超过8个（这是HashMap内部定义的一个边界值，至于为什么是8注释里面有介绍，即在0.75的负载因子下，根据泊松分布公式计算出来一个bin中node超过8个的概率已经很低了（0.00000006），所以设置为8）</li>
+<li>map中存储的元素总数大于等于64个的时候，如果小于64会优先考虑先去扩容</li>
+</ul>
+<h6 id="什么时候树转为链表"><a href="#什么时候树转为链表" class="headerlink" title="什么时候树转为链表"></a>什么时候树转为链表</h6><p>若桶中链表元素个数小于等于6时，树结构还原成链表。</p>
+<pre><code class="lang-java">final void split(HashMap&lt;K,V&gt; map, Node&lt;K,V&gt;[] tab, int index, int bit) &#123;
+    ....
+    // 树的拆分
+    if (loHead != null) &#123;
+        if (lc &lt;= UNTREEIFY_THRESHOLD)
+            tab[index] = loHead.untreeify(map);
+        else &#123;
+            tab[index] = loHead;
+            if (hiHead != null) // (else is already treeified)
+                loHead.treeify(tab);
+        &#125;
+    &#125;
+    if (hiHead != null) &#123;
+        if (hc &lt;= UNTREEIFY_THRESHOLD)
+            tab[index + bit] = hiHead.untreeify(map);
+        else &#123;
+            tab[index + bit] = hiHead;
+            if (loHead != null)
+                hiHead.treeify(tab);
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>在树的拆分中，会判断拆分后的数是不是小到可以转为链表了。如果可以转为就转成链表。</p>
+<p>因为红黑树的平均查找长度是log(n)，长度为8的时候，平均查找长度为3，如果继续使用链表，平均查找长度为8/2=4，这才有转换为树的必要。链表长度如果是小于等于6，6/2=3，虽然速度也很快的，但是转化为树结构和生成树的时间并不会太短。</p>
+<p>还有选择6和8，中间有个差值7可以有效防止链表和树频繁转换。假设一下，如果设计成链表个数超过8则链表转换成树结构，链表个数小于8则树结构转换成链表，如果一个HashMap不停的插入、删除元素，链表个数在8左右徘徊，就会频繁的发生树转链表、链表转树，效率会很低。<a href="[https://www.cnblogs.com/xc-chejj/p/10825676.html]">参考</a></p>
+<h3 id="get流程"><a href="#get流程" class="headerlink" title="get流程"></a>get流程</h3><p>hashmap有2种常用的get方法：</p>
+<pre><code class="lang-java">public V get(Object key)  //依据key 获取值
+public V getOrDefault(Object key, V defaultValue) //依据key获取值，如果没有key，返回用户给定的默认值
+</code></pre>
+<p>get的流程就很简单了，主要的逻辑都在这里面：</p>
+<pre><code class="lang-java">final Node&lt;K,V&gt; getNode(int hash, Object key) &#123;
+    Node&lt;K,V&gt;[] tab; Node&lt;K,V&gt; first, e; int n; K k;
+    if ((tab = table) != null &amp;&amp; (n = tab.length) &gt; 0 &amp;&amp;
+        (first = tab[(n - 1) &amp; hash]) != null) &#123;
+        if (first.hash == hash &amp;&amp; // always check first node
+            ((k = first.key) == key || (key != null &amp;&amp; key.equals(k))))
+            return first;
+        if ((e = first.next) != null) &#123;
+            if (first instanceof TreeNode)
+                return ((TreeNode&lt;K,V&gt;)first).getTreeNode(hash, key);
+            do &#123;
+                if (e.hash == hash &amp;&amp;
+                    ((k = e.key) == key || (key != null &amp;&amp; key.equals(k))))
+                    return e;
+            &#125; while ((e = e.next) != null);
+        &#125;
+    &#125;
+    return null;
+&#125;
+</code></pre>
+<p>主要就是计算key所在的位置，然后看所在位置上是链表还是树。然后使用不同的策略去查询出对应key的node。</p>
+<h3 id="remove流程"><a href="#remove流程" class="headerlink" title="remove流程"></a>remove流程</h3><p>remove的主要逻辑在</p>
+<pre><code class="lang-java">final Node&lt;K,V&gt; removeNode(int hash, Object key, Object value,
+                           boolean matchValue, boolean movable) &#123;
+    Node&lt;K,V&gt;[] tab; Node&lt;K,V&gt; p; int n, index;
+    // 判断数组不为空，并且该key的hash值不为散列的位置上bin不为空
+    if ((tab = table) != null &amp;&amp; (n = tab.length) &gt; 0 &amp;&amp;
+        (p = tab[index = (n - 1) &amp; hash]) != null) &#123;
+        Node&lt;K,V&gt; node = null, e; K k; V v;
+        if (p.hash == hash &amp;&amp;
+            ((k = p.key) == key || (key != null &amp;&amp; key.equals(k))))
+            // 如果第一个位置就相同 就指向第一个
+            node = p;
+        else if ((e = p.next) != null) &#123;
+            // 第一个位置不相同，但是后面有拉链
+            if (p instanceof TreeNode)
+                //如果是树，去遍历树查看是否有该key
+                node = ((TreeNode&lt;K,V&gt;)p).getTreeNode(hash, key);
+            else &#123;
+                //如果是拉链，遍历他
+                do &#123;
+                    if (e.hash == hash &amp;&amp;
+                        ((k = e.key) == key ||
+                         (key != null &amp;&amp; key.equals(k)))) &#123;
+                        node = e;
+                        break;
+                    &#125;
+                    p = e;
+                &#125; while ((e = e.next) != null);
+            &#125;
+        &#125;
+        //上面主要是查找，并node标记位置。下面是开始删除
+        if (node != null &amp;&amp; (!matchValue || (v = node.value) == value ||
+                             (value != null &amp;&amp; value.equals(v)))) &#123;
+            if (node instanceof TreeNode)
+                ((TreeNode&lt;K,V&gt;)node).removeTreeNode(this, tab, movable);
+            else if (node == p)
+                // 如果是第一个就相同就让该位置指向p的下一个节点
+                tab[index] = node.next;
+            else
+                //p是node的前节点，p的next执行node的下一个，就删除了node。
+                p.next = node.next;
+            ++modCount;
+            --size;
+            afterNodeRemoval(node);
+            return node;
+        &#125;
+    &#125;
+    return null;
+&#125;
+</code></pre>
+<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><p>先列举一些经常使用的方法：</p>
+<pre><code class="lang-java">Map&lt;K,V&gt; map = new HashMap&lt;&gt;(16 /*initialCapacity*/); //申明，建议构造指定初始散列表大小
+map.put(k,v); //存放，k和v都可以为null
+map.get(k); //获取
+map.getOrDefault(k,v2); //获取，没有值则返回v2
+map.containsKey(k); //判断key是否存在
+map.keySet(); //获取所有的key，同理还有values()获取所有的值
+</code></pre>
+<p>这里强调下，在初始化一个HashMap的时候，最好指定下初始化初始容量。具体的规则（Alibaba代码规范）：</p>
+<ul>
+<li>如果不确定元素的个数，指定16，也就是内置默认值；</li>
+<li>如果确定：initialCapacity=(需要存储的元素个数 / 负载因子) + 1； 负载因子默认0.75</li>
+</ul>
+<h2 id="并发存在问题"><a href="#并发存在问题" class="headerlink" title="并发存在问题"></a>并发存在问题</h2><p>hashmap是线程不安全的，所以put和get的时候本身就存在并发的常见问题，写未读，重复写等，不过有一个特殊的线程不安全的行为是发生在hash表扩容的时候的。</p>
+<p>在jdk1.7的时候，因为扩容后节点的rehash过程会导致，hash表的拉链出现一个死环（尾结点指向头节点）。不过在jdk1.8中已经不存在了，这块逻辑后面后期整理。(导致的原因主要是jdk1.7的rehash过程)</p>
+<p>此时线程1和线程2此时都走到了rehash这一步。jdk的rehash代码如下：</p>
+<pre><code class="lang-java">void transfer(Entry[] newTable) &#123;
+    Entry[] src = table;
+    int newCapacity = newTable.length;
+    for (int j = 0; j &lt; src.length; j++) &#123;
+        Entry&lt;K,V&gt; e = src[j];
+        if (e != null) &#123;
+            src[j] = null;
+              //就是遍历链表，判断是否需要移位，如果需要移位就摘出该元素放到新的位置上去。
+            do &#123;
+                Entry&lt;K,V&gt; next = e.next; // * 假设此时线程1被挂起
+                int i = indexFor(e.hash, newCapacity);
+                e.next = newTable[i];
+                newTable[i] = e;
+                e = next;
+            &#125; while (e != null);
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>假设当前HashMap结构如图（图片来自网络）：</p>
+<p><img src=":java-jdk-hashmap/hashmap_cycle.png" alt="image-20200215220430888"></p>
+<p>此时老的表长度为2，在1位置上有3，7，5三个节点，现在扩容长度为4，需要将3，5，7节点进行偏移。</p>
+<p>此时【线程1：e-&gt;3，next-&gt;7】【线程2将链表已经完全处理结束：将位置1处的3和7全部移动到了位置3处。】</p>
+<p>这时候我们可以发现此时3和7的顺序是颠倒的（线程2上e和next是线程1当前的e和next指向）。这时候线程1开始执行。</p>
+<pre><code class="lang-java">e.next = newTable[i];
+newTable[i] = e;
+e = next;
+</code></pre>
+<p>这时候执行到最后一行next=e。此时【线程1：e-&gt;7】。继续下一次循环。此时更新了next【线程1：e-&gt;7，next-&gt;e.next-&gt;3】如下图：</p>
+<p><img src=":java-jdk-hashmap/hashmap_cycle2.png" alt="hashmap_cycle2"></p>
+<p>循环继续：当前e指向了7。table[3]执行了3。这时候我们按照线程1的要求会应该将7摘下放入table[3]位置，然后e和next后移后如图：</p>
+<p><img src=":java-jdk-hashmap/hashmap_cycle3.png" alt="hashmap_cycle3"></p>
+<p>之后继续，线程1将3摘下来放入table[3]位置。</p>
+<p><img src=":java-jdk-hashmap/hashmap_cycle4.png" alt="hashmap_cycle4"></p>
+<p>e的next=newTable[i]=7，newTable[i]=e=3，e=next=null遍历到此结束。此时3头插入7，7的next是3，3的next再指向了7构成了死环。</p>
+<p>其实主要原因就是1.7中，rehash的时候遍历列表需要移位的元素是采用<strong>头部插入</strong>的方式进行插入的，当另外的一个线程将当前线程已经指定了但是还没有进行偏移的节点给插入新位置了，那么当前线程原来的e和next的顺序是颠倒的，这在当前线程后面的操作中会导致死循环。</p>
+<h1 id="附全部源码和注释"><a href="#附全部源码和注释" class="headerlink" title="附全部源码和注释"></a>附全部源码和注释</h1><p>todo</p>
+</div><script src="/js/highlight.min.js"></script><script src="/js/jquery.min.js"></script><script src="/js/main.js"></script></body></html>

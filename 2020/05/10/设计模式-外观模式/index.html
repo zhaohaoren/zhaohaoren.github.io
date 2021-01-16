@@ -1,0 +1,97 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=0.5"><link rel="stylesheet" href="/css/highlight/xcode.min.css"><link rel="stylesheet" href="/css/post.css"><link rel="icon" href="/img/favicon.png"><title>【设计模式】外观模式</title><meta name="generator" content="Hexo 5.3.0"><link rel="alternate" href="/atom.xml" title="赵浩任的博客" type="application/atom+xml">
+</head><body>　　<div class="inner"><h2>【设计模式】外观模式</h2><h1 id="【设计模式】外观模式"><a href="#【设计模式】外观模式" class="headerlink" title="【设计模式】外观模式"></a>【设计模式】外观模式</h1><p>本文主要介绍外观模式及其抽象外观的原理和实现。</p>
+<h2 id="模式背景"><a href="#模式背景" class="headerlink" title="模式背景"></a>模式背景</h2><p>首先，使用外观模式之前就已经拥有一个很好的起点，系统业务中某些模块已经封装好了，而且职责单一。但是最终使用避免不了模块与模块，类与类之间的交互。这种交互该如何优化？就是外观模式要解决的。</p>
+<p>书上举了一个例子，系统中有三个子模块：1.负责加密，2.负责读文件，3负责写文件。这三个模块各司其职，职能已经划分好了。但是使用使用的时候，我们会有大量的地方需要成批的调用这1-2-3的逻辑，每个地方都写这些逻辑毫无复用而言。所以我们应该<strong>将这些组合的单一职责逻辑封装到一个新类上，让外界统一通过这个新类来访问</strong>，这就是外观模式。</p>
+<h2 id="定义-amp-概念"><a href="#定义-amp-概念" class="headerlink" title="定义&amp;概念"></a>定义&amp;概念</h2><p><strong>外观模式（Facade Pattern）：</strong>为子系统中的一组接口提供一个统一的入口。外观模式定义了一个高层接口，这个接口使得这一子系统更加容易使用。（外观模式又称为门面模式，是一种对象结构型模式）</p>
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>外观模式的目的是为了简化类于类之间的交互，其本质思想来源于封装。子系统是已经设计好的单一职责类，外观模式是将这些单一的职责聚合起来，提供一套模板。让需要使用这套模板的类，直接使用外观类进行访问。这样来提高代码的复用性。</p>
+<p><strong>必要条件</strong></p>
+<ul>
+<li>Facade（外观角色）<ul>
+<li>客户端直接调用的那个外观，负责和其他多个子系统进行交互。</li>
+</ul>
+</li>
+<li>SubSystem（子系统角色）<ul>
+<li>每个子系统分别有自己对应的功能，可以被客户端直接调用，也可以被外观角色调用。他即使客户端想要实现功能的具体办事人。</li>
+</ul>
+</li>
+</ul>
+<h3 id="抽象外观模式"><a href="#抽象外观模式" class="headerlink" title="抽象外观模式"></a>抽象外观模式</h3><p>外观模式分为<strong>简单外观</strong>和<strong>抽象外观</strong>。简单外观就是对子模块添加外观类。但是<strong>这么会有一个问题，就是对子模块不可扩展</strong>。如果我们需要替换，增加，移除子模块，那么就需要去修改外观类，或者添加外观类去修改客户端代码，这违背了开闭原则。这时候可以<strong>针对外观类添加抽象层，来实现外观类的扩展</strong>，而客户端使用抽象外观进行编程。</p>
+<h2 id="UML"><a href="#UML" class="headerlink" title="UML"></a>UML</h2><p>简单外观模式</p>
+<p><img src="/Users/zhaohaoren/workspace/mycode/blog-docs/docs/设计模式/Facade_Simple.png" alt="image-20200821105902188"></p>
+<p>抽象外观模式</p>
+<p><img src="/Users/zhaohaoren/workspace/mycode/blog-docs/docs/设计模式/FacadeAbstract.png" alt="image-20200821110256652"></p>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><h3 id="简单外观"><a href="#简单外观" class="headerlink" title="简单外观"></a>简单外观</h3><p>直接将子系统的功能包装成一个外观类。</p>
+<p><strong>实现</strong></p>
+<p>子系统</p>
+<pre><code class="lang-java">//X: 0,1,2....N
+public class SubSystemX &#123;
+    public void op() &#123;
+        System.out.println(&quot;system 0X is doing x ...&quot;);
+    &#125;
+&#125;
+</code></pre>
+<p>外观</p>
+<pre><code class="lang-java">public class Facade &#123;
+    private SubSystem01 s1;
+    private SubSystem02 s2;
+
+    public Facade(SubSystem01 s1, SubSystem02 s2) &#123;
+        this.s1 = s1;
+        this.s2 = s2;
+    &#125;
+
+    public void op() &#123;
+        s1.op1();
+        s2.op2();
+    &#125;
+&#125;
+</code></pre>
+<p>客户端</p>
+<pre><code class="lang-java">Facade facade = new Facade(new SubSystem01(),new SubSystem02());
+facade.op();
+</code></pre>
+<h3 id="抽象外观类"><a href="#抽象外观类" class="headerlink" title="抽象外观类"></a>抽象外观类</h3><p>上面简单外观有个问题：如果想要修改外观类的实现，比如增加减少和外观类交互的子系统，那么就要修改该外观类以及客户端了。所以需要引入一个抽象，这样以后只需要添加新的外观类就可以了。客户端具体使用哪个外观类通过配置就可以搞定。</p>
+<p><strong>实现</strong></p>
+<pre><code class="lang-java">public abstract class AbstractFacade &#123;
+    public abstract void op();
+&#125;
+public class FacadeNew extends AbstractFacade &#123;
+    private SubSystem03 s3;
+
+    public FacadeNew(SubSystem03 s3) &#123;
+        this.s3 = s3;
+    &#125;
+
+    @Override
+    public void op() &#123;
+        s1.op1();
+    &#125;
+&#125;
+//使用
+AbstractFacade abstractFacade = new FacadeNew(new SubSystem01());
+// 可以通过配置来加载具体的外观类
+abstractFacade.op();
+</code></pre>
+<h2 id="优缺点"><a href="#优缺点" class="headerlink" title="优缺点"></a>优缺点</h2><h3 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h3><ul>
+<li>简化了调用过程，无须了解、深入子系统，防止带来风险。</li>
+<li>减少系统依赖、松散耦合。</li>
+<li>更好的划分访问层次，外观层次和下面子模块层次分开，还可以外观套外观。</li>
+<li>符合迪米特法则，即最少知道原则。</li>
+</ul>
+<h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><ul>
+<li>没法很好的限制客户端直接使用子系统，这个缺点在某些情况才存在。</li>
+</ul>
+<h2 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h2><ul>
+<li>为了节约系统资源，外观角色可以<strong>设计为一个单例类</strong>，并确保系统中只有唯一一个访问的入口。</li>
+<li>一个系统<strong>可以设计多个外观类</strong>，分别提供不同的功能。</li>
+<li>不要在外观类中对子系统的功能有添加，外观类只是集中这些功能，不是扩充这些功能。<strong>不要加入新的行为</strong>，如果新行为应该在子系统中添加，或者直接添加子系统。不要使用外观类来添加。</li>
+</ul>
+<h2 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h2><p>这类场景还是比较多的。当你写代码的时候，在写某一块业务的时候，你发现写的过程中，这边需要调用A的东西，又需要调用B的东西，然后这样的代码在很多地方又都要用到，你就可以考虑使用外观模式。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>外观模式也是一个很简单的模式（其实很多时候我们已经这么用了，只是不知道官方话怎么讲）。这个模式主要就2个要点：</p>
+<ol>
+<li>当我们需要将多个职责封装在一起的时候，使用外观模式提供一个统一的访问入口。 </li>
+<li>当外观模式中的子系统可能会有扩展和替换的时候，使用抽象外观去支持其扩展性。</li>
+</ol>
+<h1 id="附"><a href="#附" class="headerlink" title="附"></a>附</h1><p>相关代码：<a href="https://github.com/zhaohaoren/design_pattern_tutorial">https://github.com/zhaohaoren/design_pattern_tutorial</a></p>
+<p>如有代码和文章问题，还请指正！感谢！</p>
+</div><script src="/js/highlight.min.js"></script><script src="/js/jquery.min.js"></script><script src="/js/main.js"></script></body></html>

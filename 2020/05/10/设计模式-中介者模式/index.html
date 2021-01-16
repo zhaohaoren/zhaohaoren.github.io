@@ -1,0 +1,133 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=0.5"><link rel="stylesheet" href="/css/highlight/xcode.min.css"><link rel="stylesheet" href="/css/post.css"><link rel="icon" href="/img/favicon.png"><title>【设计模式】中介者模式</title><meta name="generator" content="Hexo 5.3.0"><link rel="alternate" href="/atom.xml" title="赵浩任的博客" type="application/atom+xml">
+</head><body>　　<div class="inner"><h2>【设计模式】中介者模式</h2><h1 id="【设计模式】中介者模式"><a href="#【设计模式】中介者模式" class="headerlink" title="【设计模式】中介者模式"></a>【设计模式】中介者模式</h1><p>本文主要介绍中介者模式的概念和用法。</p>
+<h2 id="模式背景"><a href="#模式背景" class="headerlink" title="模式背景"></a>模式背景</h2><p>实际开发中，我们存在很多广播性质的需求。比如说当我们发送一个消息，希望很多人同时收到，所以有了QQ群这个功能。有了QQ群，我们就不需要通过自己一个个去发送消息，也就是说这个QQ群帮我和其他的用户进行了解耦。类似于QQ群这样一个引入中间者思想的模式就是中介者模式。</p>
+<p>如果不使用中介者模式的话，所有相关的人员全部都耦合在一起的，这种大量的耦合势必有很多缺点。比如：</p>
+<ol>
+<li>很难复用，消息的传播都在消息发送方，如果一个用户也想发送给这个群组，那就又要写一套一样的逻辑代码。</li>
+<li>扩展性差！添加一个成员什么的，就需要修改源代码，违反开闭原则。</li>
+</ol>
+<h2 id="定义-amp-概念"><a href="#定义-amp-概念" class="headerlink" title="定义&amp;概念"></a>定义&amp;概念</h2><p><strong>中介者模式</strong>：使用一个中介对象来封装一系列对象之间的交互，使得各个对象间不需要显式的互相引用，从而减低耦合度。中介者模式又叫调停者模式，是一种对象行为型模式。</p>
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>系统中有大量的多对多等相互关系，这些关系让系统的类或者组件之间的耦合度就很高，这时候就<strong>运用迪米特法则，引入一个中间的类</strong>，来维系这些关系，大大降低系统的耦合度。这个引入的中间类就是中介者。</p>
+<p>引入了中介者之后，可以让系统中对象的关系由网状结构转为星型结构，如下图所示。系统中的对象交互都通过中介者对象来进行调度。</p>
+<p><img src="/Users/zhaohaoren/workspace/mycode/blog-docs/docs/设计模式/Mediator2.png" alt="image-20200828105920238"></p>
+<p><strong>中介者模式的核心就是这个中介类</strong>，他的主要职责：</p>
+<ol>
+<li>中转作用：调用先发送给中介者，中介者转发给需要的接受者。</li>
+<li>协调作用：中介者可以有自己的内部逻辑，将这些逻辑写在中介者类中，也就是说中介者可以辅助调用者做一些操作。</li>
+</ol>
+<p><strong>组成要素</strong></p>
+<ul>
+<li><strong>抽象中介者：</strong>一个接口，用于各个同事独享之间进行通信。<ul>
+<li>这是<strong>核心</strong>，里面有2个核心的部分：<ul>
+<li><strong>内部持有一个list用来存储转发的对象</strong></li>
+<li><strong>提供一个注册方法，可以动态的添加成员。</strong></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>具体中介者：抽象中介的实现，维持各个同事对象的关系和引用的实现。</li>
+<li>抽象同事类：各个同事类的公有方法，申明和中介者通信的抽象方法。<ul>
+<li><strong>内部持有一个中介者引用</strong>，我们还是希望让同事自己能发起调用，相当于将之前其他对象耦合的逻辑抽取到中介者中。</li>
+</ul>
+</li>
+<li>具体同事类：是抽象同事类的子类。每个同事对象需要通信的时候先和中介者通信，间接来和其他同事类通信。</li>
+</ul>
+<h2 id="UML"><a href="#UML" class="headerlink" title="UML"></a>UML</h2><p><img src="/Users/zhaohaoren/workspace/mycode/blog-docs/docs/设计模式/Mediator.png" alt="image-20200828103614979"></p>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><p>抽象中介者</p>
+<pre><code class="lang-java">public abstract class Mediator &#123;
+
+    /**
+     * 维系着同事对象的引用
+     */
+    protected ArrayList&lt;Colleague&gt; colleagues = new ArrayList&lt;&gt;();
+
+    /**
+     * 往中介者中添加同事对象
+     */
+    public void register(Colleague colleague) &#123;
+        colleagues.add(colleague);
+    &#125;
+
+    /**
+     * 中介的关系逻辑
+     */
+    public abstract void operation(Colleague colleague);
+&#125;
+</code></pre>
+<p>具体中介者</p>
+<pre><code class="lang-java">public class ConcreteMediator extends Mediator &#123;
+    @Override
+    public void operation(Colleague colleague) &#123;
+        //这里将注册的同事类的关系联系起来
+        //这里只是瞎写了一个逻辑。
+        if (colleague == colleagues.get(0)) &#123;
+            colleague.op();
+            colleagues.get(1).op();
+        &#125; else &#123;
+            colleagues.get(1).op();
+            colleague.op();
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>抽象同事类</p>
+<pre><code class="lang-java">public abstract class Colleague &#123;
+    protected Mediator mediator;
+
+    public Colleague(Mediator mediator) &#123;
+        this.mediator = mediator;
+    &#125;
+
+    /**
+     * 同事自己的方法，一般也是其他同事所耦合的向要调用的方法。
+     */
+    public abstract void op();
+
+    /**
+     * 自己定义依赖方法，与中介者进行通信
+     */
+    public void send() &#123;
+        mediator.operation(this);
+    &#125;
+&#125;
+</code></pre>
+<p>具体同事类</p>
+<pre><code class="lang-java">public class ColleagueX extends Colleague&#123;
+
+    public Colleague1(Mediator mediator) &#123;
+        super(mediator);
+    &#125;
+
+    @Override
+    public void op() &#123;
+        System.out.println(&quot;i am X&quot;);
+    &#125;
+&#125;
+</code></pre>
+<p>使用</p>
+<pre><code class="lang-java">//定义中介者
+ConcreteMediator concreteMediator = new ConcreteMediator();
+//定义同事
+Colleague1 colleague1 = new Colleague1(concreteMediator);
+Colleague2 colleague2 = new Colleague2(concreteMediator);
+//同事注册到中介者上
+concreteMediator.register(colleague1);
+concreteMediator.register(colleague2);
+//触发改动
+colleague1.send();
+colleague2.send();
+</code></pre>
+<h2 id="优缺点"><a href="#优缺点" class="headerlink" title="优缺点"></a>优缺点</h2><h3 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h3><ul>
+<li>降低了类的复杂度，将多对多转化成了一对多，更方便理解类对象之间的关系。 </li>
+<li>对相互交互的类进行了解耦。 </li>
+<li>可复用，一个中介者可以说是一个群组，这个群组可以被多个</li>
+<li>符合迪米特原则。</li>
+</ul>
+<h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><ul>
+<li>如果各个同事间的交互非常多并且复杂情况下，中介者可能会变得十分复杂，不易维护和管理。</li>
+</ul>
+<h2 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h2><p>系统中对象之间存在复杂的引用关系，让系统看着很复杂，可以使用中介者来清理交互的脉络。或者就如需要实现QQ群这样的广播功能，引入中介者降低耦合。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>中介者其实也是我之前提过的，基于代理的思想，只是他们服务的具体细节目标有所不同（但是他们本质都还是代理嘛）。中介者模式多用来处理多对多这种关系复杂的系统，为了让这种关系松耦合才使用的。我们需要一个中介类，因为中介类需要管理一系列的同事类，所以同事类也需要有统一抽象。所以整个中介者模式就是围绕中介类抽象，同事类抽象进行的延伸。</p>
+<h1 id="附"><a href="#附" class="headerlink" title="附"></a>附</h1><p>相关代码：<a href="https://github.com/zhaohaoren/design_pattern_tutorial">https://github.com/zhaohaoren/design_pattern_tutorial</a></p>
+<p>如有代码和文章问题，还请指正！感谢！</p>
+</div><script src="/js/highlight.min.js"></script><script src="/js/jquery.min.js"></script><script src="/js/main.js"></script></body></html>

@@ -110,3 +110,15 @@ div.date {
     margin-top: 35px;
     margin-bottom: 25px;
 }
+
+div.word-count {
+    float: right;
+    color: darkgray;
+    line-height: 100%;
+}
+
+@media screen and (max-width: 860px) { 
+    div.word-count {
+        display: none;
+    } 
+} 

@@ -1,0 +1,218 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=0.5"><link rel="stylesheet" href="/css/highlight/xcode.min.css"><link rel="stylesheet" href="/css/post.css"><link rel="icon" href="/img/favicon.png"><title>【设计模式】组合模式</title><meta name="generator" content="Hexo 5.3.0"><link rel="alternate" href="/atom.xml" title="赵浩任的博客" type="application/atom+xml">
+</head><body>　　<div class="inner"><h2>【设计模式】组合模式</h2><h1 id="【设计模式】组合模式"><a href="#【设计模式】组合模式" class="headerlink" title="【设计模式】组合模式"></a>【设计模式】组合模式</h1><p>本文主要介绍：组合模式原理和用法，以及组合模式的透明和安全实现。</p>
+<h2 id="模式背景"><a href="#模式背景" class="headerlink" title="模式背景"></a>模式背景</h2><p>在书中给了一个案例：我们对给定的文件夹进行杀毒。文件夹和和子文件夹都需要递归进行查杀，并且需要依据文件是图片还是文本需要采用不同的查杀方式。</p>
+<p>这是一个比较常见的业务场景。相当于我们要递归遍历一个树形结构，但是这个树里面的节点类型有好几种。我们自然会为每种类型的节点创建对应的类，但是问题出现在<strong>包含子文件夹和文件的文件夹这个类上（也就是非叶子节点）</strong>。对于这种节点，我们就需要对自己下面的文件类型进行区分，然后采用不同的杀毒策略。</p>
+<p>这样就<strong>出现了一个问题</strong>：1. 非叶子节点的处理逻辑就很复杂，我们每种文件类型需要做区分在去调用查杀。2. 一旦添加了一个新的文件种类，需要修改文件夹类代码。</p>
+<p>所以我们希望能让系统进行杀毒操作的时候，无论对什么文件和文件夹，他们都用同一套对外接口来操作，文件夹的代码就可以简化操作这个同一套标准的接口。</p>
+<h2 id="定义-amp-概念"><a href="#定义-amp-概念" class="headerlink" title="定义&amp;概念"></a>定义&amp;概念</h2><p>组合模式是对单个对象和组合对象（叶子节点和非叶子节点）抽象，使其使用具有一致性，组合模式又叫“整体-部分”模式。是一种对象结构型模式。对于树形的对象结构群体来说很有用。<strong>组合模式是使用面向对象的思想来实现树形结构的构建和处理。</strong></p>
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>前面我们说过，问题主要出在了文件夹类进行处理的时候，各个文件不同需要做区分并调用查杀方法。现在希望能够有统一的调用接口。这就很简单：<strong>抽象！</strong>我们将文本文件，图片文件，还是文件夹都抽象公共部分出来。然后<strong>操作都是通过这个抽象来进行操作</strong>。以后添加什么新的文件类型，也只需要添加一个抽象的新的实现就行了。</p>
+<p>所以可以理解为：<strong>组合模式主要的核心思想，是将树型结构中的节点抽象出一个抽象构建类。</strong></p>
+<p><strong>必要条件</strong></p>
+<ul>
+<li>Component（抽象的节点类）<ul>
+<li><strong>这是组合模式的关键</strong>，就是将树形结构中的叶子节点和非叶子节点都抽象出一个父级（可以是接口也可以是抽象类）。这个抽象里面包含叶子和非叶子所有的属性和方法。可以广义的代表该树形体系中所有的节点。（是否组合模式就看是否将结构抽象出这样的一个公共抽象）</li>
+</ul>
+</li>
+<li>Leaf（叶子节点）<ul>
+<li>就是树形结构中不包含子节点的那些Component的实现。</li>
+</ul>
+</li>
+<li>Composite（容器节点）<ul>
+<li>非叶子节点部分，里面有个List，存放自己的子节点们。</li>
+</ul>
+</li>
+</ul>
+<p>因为系统中节点的种类不同，一般都可以会有各自的方法，比如文件夹节点有add，remove方法，但是叶子节点就没有。这时候我们对Component抽象的层次可以做一些控制，我们按照抽象层次程度分为透明模式和安全模式：</p>
+<ul>
+<li>透明模式<ul>
+<li>抽象构建类定义了所有的方法。就是我们一直在说的组合模式。</li>
+<li>说他不够安全因为，如果在运行中调用了叶子节点的add，remove方法（这些方法本身对于叶子没有意义）可能会出错。</li>
+</ul>
+</li>
+<li>安全模式<ul>
+<li>抽象构建类中只定义通用的方法。叶子还是中间节点他们各自需要的方法，他们自己实现。</li>
+</ul>
+</li>
+</ul>
+<p>当然我们还可以在抽象构建类中对方法提供默认实现，需要使用该方法的进行覆写即可，这也是不透明的。都只是为了减少编写无用的代码，但是提供不了强约束。</p>
+<h2 id="UML"><a href="#UML" class="headerlink" title="UML"></a>UML</h2><p>透明组合模式</p>
+<p><img src="/Users/zhaohaoren/workspace/mycode/blog-docs/docs/设计模式/Composite_1.png" alt="image-20200819140454462"></p>
+<p>安全组合模式</p>
+<p><img src="/Users/zhaohaoren/workspace/mycode/blog-docs/docs/设计模式/Composite_2.png" alt="image-20200819140637984"></p>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><h3 id="透明组合模式"><a href="#透明组合模式" class="headerlink" title="透明组合模式"></a>透明组合模式</h3><p>抽象层拥有所有的方法，这些方法可能叶子节点是不应该有的。 比如add和remove子节点。</p>
+<p>抽象</p>
+<pre><code class="lang-java">public interface Component &#123;
+    void add(Component c);
+    void remove(Component c);
+    List&lt;Component&gt; getChild();
+    void operation();
+&#125;
+</code></pre>
+<p>叶子</p>
+<pre><code class="lang-java">class Leaf implements Component &#123;
+    private String name;
+    public Leaf(String name) &#123;
+        this.name = name;
+    &#125;
+    @Override
+    public void add(Component c) &#123;
+        System.out.println(&quot;can&#39;t add&quot;);
+    &#125;
+    @Override
+    public void remove(Component c) &#123;
+        System.out.println(&quot;can&#39;t remove&quot;);
+    &#125;
+    @Override
+    public List&lt;Component&gt; getChild() &#123;
+        return null;
+    &#125;
+    @Override
+    public void operation() &#123;
+        System.out.println(&quot;叶子节点：&quot; + name);
+    &#125;
+&#125;
+</code></pre>
+<p>非叶子</p>
+<pre><code class="lang-java">class Composite implements Component &#123;
+    private List&lt;Component&gt; componentList = new ArrayList&lt;&gt;();
+    private String name;
+    public Composite(String name) &#123;
+        this.name = name;
+    &#125;
+    @Override
+    public void add(Component c) &#123;
+        componentList.add(c);
+    &#125;
+    @Override
+    public void remove(Component c) &#123;
+        componentList.remove(c);
+    &#125;
+    @Override
+    public List&lt;Component&gt; getChild() &#123;
+        return componentList;
+    &#125;
+    @Override
+    public void operation() &#123;
+        System.out.println(&quot;非叶子节点：&quot; + name);
+        componentList.forEach(Component::operation);
+    &#125;
+&#125;
+</code></pre>
+<p>使用</p>
+<pre><code class="lang-java">Component c1, c2, c3, f1, f2, f3;
+c1 = new Leaf(&quot;1&quot;);
+c2 = new Leaf(&quot;2&quot;);
+c3 = new Leaf(&quot;3&quot;);
+f1 = new Composite(&quot;1&quot;);
+f2 = new Composite(&quot;2&quot;);
+f3 = new Composite(&quot;3&quot;);
+f1.add(c1);
+f1.add(c2);
+f2.add(f1);
+f3.add(c3);
+f1.add(f3);
+f1.operation();
+</code></pre>
+<h4 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h4><ul>
+<li>简单，保证了叶子节点和非叶子节点具有对外一致性，在对该树形节点递归处理的时候可以同等对待。</li>
+</ul>
+<h4 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h4><ul>
+<li>不安全，叶子的特性（不能添加子节点）有可能被破坏，一旦错误调用可能会出问题，没有代码约束保证。</li>
+<li>其次，每次叶子节点实现抽象的时候，我们需要实现全部方法，add和remove这些就本是没必要去实现的，这就增加了编码复杂度。</li>
+</ul>
+<h3 id="安全组合模式"><a href="#安全组合模式" class="headerlink" title="安全组合模式"></a>安全组合模式</h3><p>安全组合模式就是让抽象层剥离叶子节点不需要的方法，具体的实现让Composite自己实现。</p>
+<h4 id="实现1"><a href="#实现1" class="headerlink" title="实现1"></a>实现1</h4><p>我们可以使用适配器模式的缺省适配器来适配一个抽象，实现叶子的不需要的默认方法。然后让叶子节点来实现这个类。</p>
+<pre><code class="lang-java">public abstract class AbstractComponent implements Component &#123;
+    @Override
+    public void add(Component c) &#123;
+        System.out.println(&quot;no support&quot;);
+    &#125;
+    @Override
+    public void remove(Component c) &#123;
+        System.out.println(&quot;no support&quot;);
+    &#125;
+    @Override
+    public List&lt;Component&gt; getChild() &#123;
+        System.out.println(&quot;no support&quot;);
+        return null;
+    &#125;
+    @Override
+    public abstract void operation();
+&#125;
+</code></pre>
+<h4 id="实现2"><a href="#实现2" class="headerlink" title="实现2"></a>实现2</h4><p>抽象构建中只定义公共方法，其他的他们自己用自己定义。</p>
+<pre><code class="lang-java">public interface ComponentSafe &#123;
+    void operation();
+&#125;
+</code></pre>
+<p>叶子</p>
+<pre><code class="lang-java">class LeafSafe implements ComponentSafe &#123;
+    private String name;
+
+    public LeafSafe(String name) &#123;
+        this.name = name;
+    &#125;
+
+    @Override
+    public void operation() &#123;
+        System.out.println(&quot;叶子：&quot; + name);
+    &#125;
+&#125;
+</code></pre>
+<p>非叶子</p>
+<pre><code class="lang-java">class CompositeSafe implements ComponentSafe &#123;
+    private String name;
+    private List&lt;ComponentSafe&gt; componentSafeList = new ArrayList&lt;&gt;();
+
+    public CompositeSafe(String name) &#123;
+        this.name = name;
+    &#125;
+
+    @Override
+    public void operation() &#123;
+        System.out.println(&quot;非叶子节点&quot; + name);
+        componentSafeList.forEach(ComponentSafe::operation);
+    &#125;
+
+    public void add(ComponentSafe c) &#123;
+        componentSafeList.add(c);
+    &#125;
+
+    public void remove(ComponentSafe c) &#123;
+        componentSafeList.remove(c);
+    &#125;
+
+    public List&lt;ComponentSafe&gt; getChild() &#123;
+        return componentSafeList;
+    &#125;
+&#125;
+</code></pre>
+<p>使用</p>
+<pre><code class="lang-java">ComponentSafe c1, c2, c3;
+c1 = new LeafSafe(&quot;1&quot;);
+c2 = new LeafSafe(&quot;2&quot;);
+c3 = new LeafSafe(&quot;3&quot;);
+CompositeSafe f1, f2, f3;
+f1 = new CompositeSafe(&quot;1&quot;);
+f2 = new CompositeSafe(&quot;2&quot;);
+f3 = new CompositeSafe(&quot;3&quot;);
+//build
+f1.add(c1);
+f1.add(c2);
+f1.add(c3);
+f2.add(f3);
+f1.add(f2);
+f1.operation();
+</code></pre>
+<h4 id="优点-1"><a href="#优点-1" class="headerlink" title="优点"></a>优点</h4><ul>
+<li>安全了，叶子节点不用管不属于他的方法了，有强约束里保证，叶子节点决定不会调用到add remove方法。</li>
+</ul>
+<h4 id="缺点-1"><a href="#缺点-1" class="headerlink" title="缺点"></a>缺点</h4><ul>
+<li>但是不透明了，构建叶子和构建容器需要使用不同的方法来构建。我们<strong>无法只面对抽象进行编程</strong>。</li>
+</ul>
+<h2 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h2><p>适用于有整体和部分的层次结构，这里的整体和部分指的是系统中类，他们的大致功能是相同的，小部分存在差异。我们如果希望以一种方式忽略整体和部分的差异，让客户单可以直接面向抽象编程，使用统一的标准对待他们。</p>
+<p>有树形结构的使用场景，如树形菜单，文件、文件夹的管理。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>总的来说，<strong>组合模式的核心就是对系统中大同小异的类做抽象</strong>！以方便于客户端直接面向抽象编程。透明还是安全的结合场景选择最适合的。</p>
+<h1 id="附"><a href="#附" class="headerlink" title="附"></a>附</h1><p>相关代码：<a href="https://github.com/zhaohaoren/design_pattern_tutorial">https://github.com/zhaohaoren/design_pattern_tutorial</a></p>
+<p>如有代码和文章问题，还请指正！感谢！</p>
+</div><script src="/js/highlight.min.js"></script><script src="/js/jquery.min.js"></script><script src="/js/main.js"></script></body></html>

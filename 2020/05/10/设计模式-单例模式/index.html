@@ -1,0 +1,236 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=0.5"><link rel="stylesheet" href="/css/highlight/xcode.min.css"><link rel="stylesheet" href="/css/post.css"><link rel="icon" href="/img/favicon.png"><title>【设计模式】单例模式</title><meta name="generator" content="Hexo 5.3.0"><link rel="alternate" href="/atom.xml" title="赵浩任的博客" type="application/atom+xml">
+</head><body>　　<div class="inner"><h2>【设计模式】单例模式</h2><h1 id="【设计模式】单例模式"><a href="#【设计模式】单例模式" class="headerlink" title="【设计模式】单例模式"></a>【设计模式】单例模式</h1><p>单例模式属于<strong>创建型模式</strong>。它应该是接触到的各种模式中最简单的，也是最普遍能见到的了。类似于Spring等很多框架里面都大量的采用了单例模式。本文将介绍所有网络上流传的单例模式的各种写法，如有不足欢迎补充！</p>
+<h2 id="模式背景"><a href="#模式背景" class="headerlink" title="模式背景"></a>模式背景</h2><p>在某些情况下，我们需要系统中的某些对象，在<strong><code>全局只有唯一的存在</code></strong>，就是整个程序只会有一个实例。比如windows的任务管理器，我们只能打开一个，无同时打开多个。对于面向对象的语言来讲，单例模式就是一个类创建唯一实例之后，在当前系统（严谨点应该是和该系统关联的所有相关系统）都无法再创建该实例。</p>
+<h2 id="UML"><a href="#UML" class="headerlink" title="UML"></a>UML</h2><p><img src="D:\workspace\blog-docs\docs\设计模式\singleton_pattern_uml_diagram.jpg" alt="https://www.tutorialspoint.com/design_pattern/singleton_pattern.htm"></p>
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>对于Java来说，单例模式需要这3个基本的要素：</p>
+<ol>
+<li><strong>构造函数private</strong><ul>
+<li>让外界无法通过new的方式来创建新的对象。</li>
+</ul>
+</li>
+<li><strong>内部能够持有一个自己的实例</strong><ul>
+<li>因为我们没法new对象，所以我们可以认为该对象和其类一样的唯一。所以这个对象就最好交给这个类来保管。</li>
+<li>所以整个类内部需要一个能保管自己实例对象的引用。</li>
+</ul>
+</li>
+<li><strong>对外使用静态方法获取单例的实例</strong><ul>
+<li>我们没法使用new了，需要对外提供一个静态方法，让外部通过静态方法获取单例对象。</li>
+</ul>
+</li>
+</ol>
+<p>但是考虑程序在初始化和使用该单例时候的性能问题，单例可以有很多种实现方式，但是他的思想基础就是这三个基本的要素。</p>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><p>单例模式有4种写法，各有优劣，下面逐个说明。</p>
+<h3 id="饿汉式"><a href="#饿汉式" class="headerlink" title="饿汉式"></a>饿汉式</h3><p>这是最简单单例写法，我们假设使用者很”饥饿”，<strong>在单例类初始化的时候，我们就要给他这个对象</strong>。如果在资源开销不是很大的时候，且没有明确延迟加载需求的时候我们可以直接使用饿汉式。</p>
+<p><strong>实现</strong></p>
+<pre><code class="lang-java">public class EagerSingleton &#123;
+    //2: 内置一个单例对象
+    private static final EagerSingleton singleton = new EagerSingleton();
+    //1: 构造函数私有化
+    private EagerSingleton() &#123;
+    &#125;
+    //3: 提供静态方法获取数据
+    public static EagerSingleton getInstance() &#123;
+        return singleton;
+    &#125;
+&#125;
+</code></pre>
+<ul>
+<li>优点<ul>
+<li>实现简单，因为类加载就已经new对象了，所以单例是<strong>线程安全的</strong>。</li>
+</ul>
+</li>
+<li>缺点<ul>
+<li>不是懒加载的，会消耗过多资源。<strong>比如系统大量的单例，80%都不一定用到，那么在系统加载的时候会很耗时间和资源</strong>。</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>多数情况下<strong>不推荐</strong>（当然不绝对，如果只是少量该类的话，实现这个时间成本最低了。）</p>
+</blockquote>
+<h3 id="懒汉式"><a href="#懒汉式" class="headerlink" title="懒汉式"></a>懒汉式</h3><p>我们需要对饿汉式存在的问题改良：所以设定使用者不那么饿，还很懒，让类在在我们使用的时候创建这个对象就可以了。</p>
+<h4 id="简单懒汉"><a href="#简单懒汉" class="headerlink" title="简单懒汉"></a>简单懒汉</h4><p>简单懒汉就是对该单例实现延迟加载，<strong>将创建的过程放到 <code>getInstance()</code> 过程中！</strong> 因为第一次获取的时候没有对象，所以我们先要判断该类是否已经初始化了一个对象在里面。</p>
+<p><strong>实现</strong></p>
+<pre><code class="lang-java">public class LazySingleton &#123;
+    //1: 内置单例对象引用
+    private static LazySingleton singleton = null;
+    //2: 构造函数私有化
+    private LazySingleton() &#123;
+    &#125;
+    //3: 提供获取对象的静态方法
+    public static LazySingleton getInstance() &#123;
+        // 4：判断如果还没有创建就先创建
+        if (singleton == null) &#123;
+            singleton = new LazySingleton();
+        &#125;
+        return singleton;
+    &#125;
+&#125;
+</code></pre>
+<ul>
+<li>优点<ul>
+<li>确实懒加载的，解决了饿汉式可能占资源的问题。</li>
+</ul>
+</li>
+<li>缺点<ul>
+<li>多线程会出问题。比如当线程t1已经创建了单例，线程t2也同时调用了<code>getInstance</code>方法，此时因为没有同步机制，t1方法走完了创建了实例，t2再走一次，对象会被创建2次。</li>
+<li><strong>线程不安全。</strong></li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p><strong>不推荐</strong>（该写法是<strong>线程不安全的</strong>。但是他不能保证获取的单例都是唯一的）</p>
+</blockquote>
+<h4 id="简单线程安全懒汉"><a href="#简单线程安全懒汉" class="headerlink" title="简单线程安全懒汉"></a>简单线程安全懒汉</h4><p>在简单懒汉基础上加了线程同步机制。只不过这个同步是直接<strong>对 <code>getInstance()</code>方法进行同步</strong>。</p>
+<p><strong>同步静态方法体的实现</strong></p>
+<pre><code class="lang-java">//3: 提供获取对象的静态方法
+synchronized public static LazySingleton getInstance() &#123;
+    // 判断如果还没有创建就先创建
+    if (singleton == null) &#123;
+        singleton = new LazySingleton();
+    &#125;
+    return singleton;
+&#125;
+</code></pre>
+<ul>
+<li>优点<ul>
+<li>线程安全，较为简单。</li>
+</ul>
+</li>
+<li>缺点<ul>
+<li>get对象完全串行化，并发访问效率差。</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p><strong>不推荐</strong>（并发性能差）</p>
+</blockquote>
+<h4 id="双重校验锁懒汉（DCL）"><a href="#双重校验锁懒汉（DCL）" class="headerlink" title="双重校验锁懒汉（DCL）"></a>双重校验锁懒汉（DCL）</h4><p><code>DCL：double-checked locking</code>。上面的并发性能差，其<strong>主要原因是我们加锁同步的范围太大了</strong>。我们可以对同步的代码块进一步缩小到new Singleton的时候。但是当两个线程都执行到singleton == null的代码块里面了，这时候同步阻塞了，那么当第一个线程创建完成后，第二个线程进入的时候还是需要进一步判断当前系统中是否已经有了单例，这样才能保证线程安全。</p>
+<p><strong>疑问</strong></p>
+<ul>
+<li>既然有第二重还要判断，那为啥还要第一重？<ul>
+<li>如果去掉了和上面方法体同步。</li>
+<li>这个二重校验锁其实应该这样看：我们确实只是对上面那个整个方法体<code>synchronized (LazySingletonV2.class)</code>加了锁。这样性能和上面的方法同步就没区别了。所以锁和第二重判断是保证我们创建单例安全的。 而第一重，是做了一个优化！<strong>第一重的核心作用并不是重复检验，而是优化！</strong></li>
+<li>第一重判断保证一旦实例创建好了，后面的线程不需要走同步块就可以直接返回实例，但是上面那个单例不可以（执行必须都走同步）。</li>
+<li>而第二重才是阻止并发创建单例的时候。</li>
+<li><strong>也就是说该单例，加了第一重判断后，只有在创建单例对象的那段时间效率会差些，一旦创建完，效率还是很高，后面都不会走同步区域</strong>。</li>
+</ul>
+</li>
+</ul>
+<p><strong>二重校验实现</strong></p>
+<ul>
+<li>这里主要需要注意到两点：<ul>
+<li><strong>二重检验</strong></li>
+<li><strong><code>singleton</code>引用需要加<code>volatile</code>关键字，保证内存可见性。</strong></li>
+</ul>
+</li>
+</ul>
+<pre><code class="lang-java">//6: 因为线程可见性，需要使用volatile修饰。
+private volatile static LazySingletonV2 singleton = null;
+//3: 提供获取对象的静态方法
+public static LazySingletonV2 getInstance() &#123;
+    //4: 第一重判断
+    if (singleton == null) &#123;
+        synchronized (LazySingletonV2.class) &#123;
+            //5: 第二重判断
+            if (singleton == null) &#123;
+                singleton = new LazySingletonV2();
+            &#125;
+        &#125;
+    &#125;
+    return singleton;
+&#125;
+</code></pre>
+<ul>
+<li>优点<ul>
+<li>这是饿汉式最完美的实现方案了。<strong>线程安全</strong>又懒加载。</li>
+</ul>
+</li>
+<li>缺点<ul>
+<li>比同步方法效率要高些，但是依然性能不是很高，特别用了<code>volatile</code>关键字后，会屏蔽jvm的底层一些优化，性能也不是很完美。</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p><strong>不推荐</strong>（实现麻烦，而且后面有更好的！）</p>
+</blockquote>
+<h3 id="静态内部类（IoDH）"><a href="#静态内部类（IoDH）" class="headerlink" title="静态内部类（IoDH）"></a>静态内部类（IoDH）</h3><p><code>IoDH：Initialization on Demand Holder</code></p>
+<p>有没有一种可以懒加载，还线程安全的？这就要说这个IoDH了。该单例主要利用了java的<strong>内部类和静态内部类都是延时加载</strong>的这一加载机制。</p>
+<p><strong>实现</strong></p>
+<pre><code class="lang-java">public class IoDHSingleton &#123;
+
+    //1: 构造私有化
+    private IoDHSingleton() &#123;
+    &#125;
+
+    //2: 静态内部类
+    private static class HolderClass &#123;
+        private final static IoDHSingleton instance = new IoDHSingleton();
+        /*
+         * 利用了java的类加载机制：
+         * 加载IoDHSingleton的时候不会初始化HolderClass，而是在getInstance的时候才会加载。
+         * */
+    &#125;
+
+    //3: 静态方法
+    public static IoDHSingleton getInstance() &#123;
+        return HolderClass.instance;
+    &#125;
+
+
+    public static void main(String[] args) &#123;
+        IoDHSingleton s1 = IoDHSingleton.getInstance();
+        IoDHSingleton s2 = IoDHSingleton.getInstance();
+        System.out.println(s1 == s2);
+    &#125;
+&#125;
+</code></pre>
+<ul>
+<li>优点<ul>
+<li>懒加载，<strong>线程安全</strong>。</li>
+</ul>
+</li>
+<li>缺点<ul>
+<li>对语言依赖性很强，不是java或者和java类似的加载机制的语言可能不支持。</li>
+<li>序列化不能保证单例。也就是我将一个对象序列化到磁盘上，然后再读取到内存，这样内存中还是会出现2个对象。只不过这种场景就太少见了。</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p><strong>推荐</strong>（比较完美的方案了，在内部类被使用而加载的时候创建了单例，不仅是懒加载还自然保证单例。）</p>
+</blockquote>
+<h3 id="枚举"><a href="#枚举" class="headerlink" title="枚举"></a>枚举</h3><p>这是《Effective Java》里面推荐的方式。</p>
+<pre><code class="lang-java">public enum EnumSingleton &#123;
+    INSTANCE;
+&#125;
+</code></pre>
+<ul>
+<li>优点<ul>
+<li>线程安全，序列化单例保证</li>
+</ul>
+</li>
+<li>缺点<ul>
+<li>没啥缺点</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p><strong>强烈推荐</strong>（单例能用枚举就是用枚举吧。如果不习惯就用IoDH。）</p>
+</blockquote>
+<h2 id="优缺点"><a href="#优缺点" class="headerlink" title="优缺点"></a>优缺点</h2><h3 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h3><ul>
+<li>可以严格控制外部如何访问这个对象。</li>
+<li>系统中只存在一个，节省系统资源。</li>
+</ul>
+<h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><ul>
+<li>单例模式没有抽象层，不好对单例类进行扩展。</li>
+<li>单例模式职责太重，既负责创建又负责业务方法。一定程度违背单一职责原则。</li>
+</ul>
+<h2 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h2><ol>
+<li>网站计数器</li>
+<li>线程池实例</li>
+<li>windows资源管理器等等</li>
+<li>主要系统中需要的东西是唯一的，就会使用这个。</li>
+<li>如果一个东西创建和销毁也很耗性能，考虑单例让他常驻内存。</li>
+</ol>
+<h1 id="附"><a href="#附" class="headerlink" title="附"></a>附</h1><p>相关代码：<a href="https://github.com/zhaohaoren/design_pattern_tutorial">https://github.com/zhaohaoren/design_pattern_tutorial</a></p>
+<p>如有代码和文章问题，还请指正！感谢！</p>
+</div><script src="/js/highlight.min.js"></script><script src="/js/jquery.min.js"></script><script src="/js/main.js"></script></body></html>

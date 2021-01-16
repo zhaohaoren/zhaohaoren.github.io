@@ -1,0 +1,132 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=0.5"><link rel="stylesheet" href="/css/highlight/xcode.min.css"><link rel="stylesheet" href="/css/post.css"><link rel="icon" href="/img/favicon.png"><title>【设计模式】桥接模式</title><meta name="generator" content="Hexo 5.3.0"><link rel="alternate" href="/atom.xml" title="赵浩任的博客" type="application/atom+xml">
+</head><body>　　<div class="inner"><h2>【设计模式】桥接模式</h2><h1 id="【设计模式】桥接模式"><a href="#【设计模式】桥接模式" class="headerlink" title="【设计模式】桥接模式"></a>【设计模式】桥接模式</h1><p>本文主要介绍：桥接模式概念和用法。</p>
+<h2 id="模式背景"><a href="#模式背景" class="headerlink" title="模式背景"></a>模式背景</h2><p>生活中，我们如果一个笔有三种型号：大，中，小。颜色一共有M种。如果需要所有型号都有相对应的颜色，那么就需要3*M只笔。但是如果我们转换一下：M种颜色代表M种墨水，笔的三种型号就对应三支笔，那么只需要3+M个，然后组合就可以得到相同的结果，这种思维模式就是桥接。</p>
+<p>应用到项目中，当系统中一些类存在多个独立变化的维度（注意2点：<strong>独立</strong>，<strong>变化维度</strong>），我们可以使用桥接模式来大大减少系统的中的类。如果不使用桥接模式，一般来说我们会形成一个庞大的继承系统（见下面的图2），这些变化的维度将耦合在一起，对于扩展什么的也会极为不便（无论是我们现在需要增加一个颜色，还是增加一个笔型号，势必都要添加大量的类）。</p>
+<h2 id="定义-amp-概念"><a href="#定义-amp-概念" class="headerlink" title="定义&amp;概念"></a>定义&amp;概念</h2><p>桥接模式(Bridge Pattern)：将抽象部分与它的实现部分分离，使它们都可以独立地变化。它是一种对象结构型模式，又称为柄体(Handle and Body)模式或接口(Interface)模式。</p>
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>如上面提到的，桥接模式需要先能分出系统中那些<strong>独立变化的维度</strong>，然后我们再进行分离。桥接模式的思想就是<strong>如何进行分离的过程</strong>。</p>
+<p>所有设计模式的思想其实都希望我们更多的<strong>去利用组合，而不是继承</strong>。所以桥接模式的主要思想就是：<strong>将变化的维度抽象为不同的继承体系</strong>，每一个维度是自己的一个继承体系，然后通过组合将所需要的这些变化维度拼接为最后的对象。这维度和维度之间的联系组合我们把它称为桥。如下图Color和Pen之间就是一座桥，<strong>这个桥所连接是两个继承体系</strong>。两个继承体系独立变化。<strong>桥接模式主要是用来处理多维度变化的。</strong></p>
+<p><strong>组成要素</strong></p>
+<ul>
+<li>抽象类（Abstraction）<ul>
+<li>将原来的那个设计多维度的变化的对象。这个抽象类主要担当接口的作用！用来多态其实现类的。</li>
+</ul>
+</li>
+<li>抽象类的扩充（RefinedAbstraction）<ul>
+<li>也可以理解为抽象类的具体实现类。他相当于就完成各种变化的最终组合的实现类，组合方式就是调用桥的另一个组合对象来动态完成组合的。我们可以将其中一种变化放入到该抽象类实现中去。比如上面Pen的大小。这样Pen内部通过多态的Color来组合不同的情况。</li>
+</ul>
+</li>
+<li>实现类接口（Implementor）<ul>
+<li>定义实现类的接口，是桥的另一端的继承体系的祖宗。只封装一个变化。</li>
+</ul>
+</li>
+<li>实现类的具体实现类（ConcreteImplementor）<ul>
+<li>就是该维度变化的各种情况的实现。</li>
+</ul>
+</li>
+</ul>
+<h2 id="UML"><a href="#UML" class="headerlink" title="UML"></a>UML</h2><p><strong>生活模型</strong></p>
+<ul>
+<li>如果不使用桥接模式，就可能形成这样的继承体系。</li>
+</ul>
+<p><img src="/Users/zhaohaoren/workspace/mycode/blog-docs/docs/设计模式/bridge_bad.png" alt="bridge_bad"></p>
+<ul>
+<li>使用了桥接模式</li>
+</ul>
+<p><img src="/Users/zhaohaoren/workspace/mycode/blog-docs/docs/设计模式/bridge_pen.png" alt="bridge_pen"></p>
+<p><strong>系统模型</strong></p>
+<p><img src="/Users/zhaohaoren/workspace/mycode/blog-docs/docs/设计模式/Bridge.png" alt="image-20200818113435860"></p>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><pre><code class="lang-java">/**
+ * 抽象类
+ */
+abstract class Pen &#123;
+    Color color;
+
+    public void setColor(Color color) &#123;
+        this.color = color;
+    &#125;
+
+    abstract void size();
+&#125;
+
+/**
+ * 某个变化维度的接口
+ */
+interface Color &#123;
+    void color();
+&#125;
+
+/**
+ * 变化维度接口的实现
+ */
+class Red implements Color &#123;
+    @Override
+    public void color() &#123;
+        System.out.println(&quot;red&quot;);
+    &#125;
+&#125;
+
+class Black implements Color &#123;
+    @Override
+    public void color() &#123;
+        System.out.println(&quot;black&quot;);
+    &#125;
+&#125;
+
+class Blue implements Color &#123;
+    @Override
+    public void color() &#123;
+        System.out.println(&quot;blue&quot;);
+    &#125;
+&#125;
+
+/**
+ * 抽象类的具体实现
+ */
+class Pen1 extends Pen &#123;
+    @Override
+    void size() &#123;
+        color.color();
+        System.out.println(&quot;size:1&quot;);
+    &#125;
+&#125;
+
+class Pen2 extends Pen &#123;
+    @Override
+    void size() &#123;
+        color.color();
+        System.out.println(&quot;size:2&quot;);
+    &#125;
+&#125;
+</code></pre>
+<p>使用</p>
+<pre><code class="lang-java">Pen p = new Pen1();
+Color c = new Red();
+p.setColor(c);
+p.size();
+</code></pre>
+<h2 id="优缺点"><a href="#优缺点" class="headerlink" title="优缺点"></a>优缺点</h2><p>整体来看，桥接模式的优缺点如下：</p>
+<h3 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h3><ul>
+<li>解耦了继承体系。</li>
+<li>分离抽象接口及其实现部分。提高了比继承更好的解决方案。</li>
+<li>提高系统的可扩充性，在两个变化维度中任意扩展一个维度，都不需要修改原代码。</li>
+</ul>
+<h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><ul>
+<li>增加系统的理解与设计难度，由于聚合关联关系建立在抽象层，要求开发者针对抽象进行设计与编程。</li>
+<li>要求正确识别出系统中变化的维度，这让其使用范围具有一定的局限性。</li>
+</ul>
+<h2 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h2><ol>
+<li>存在着独立的变化维度，且这些维度都需要进行扩展。</li>
+<li>当我们系统中使用继承的时候，如果发现继承体系是可以继续拆分的，那么就使用桥接进行拆分。</li>
+<li>是实现java虚拟机和jdbc这些程序的核心设计模式之一。</li>
+<li>最好的就是和笔+油墨这类性质问题，那么就使用桥接模式。</li>
+</ol>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ol>
+<li>系统存在多个相互独立的变化维度，使用桥接第一步就是先分清这些维度。</li>
+<li>每个维度一个继承体系，比如笔是一个继承体系，颜色是一个继承体系。最后使用组合拼成最终对象。</li>
+<li>当系统中有一个继承体系庞大，你可以考虑看看这个继承是否可以按照维度进行拆分，然后使用桥接来组合。</li>
+<li>桥接模式不是一个复杂的模式，<strong>他的工作就2个：按维度建立继承体系，将不同体系连一起（称为桥接）。</strong></li>
+</ol>
+<h2 id="扩展"><a href="#扩展" class="headerlink" title="扩展"></a>扩展</h2><h3 id="和适配器模式连用"><a href="#和适配器模式连用" class="headerlink" title="和适配器模式连用"></a>和适配器模式连用</h3><p><strong>桥接模式是设计初期的，适配器模式是可能开发中期的</strong>。他们位于系统设计的不同阶段。当我们发现现有的类和我们正在开发的系统无法协同工作就可以使用适配器模式。而所适配的可能就是桥接的某个维度接口的某个功能实现。比如：一个系统的数据采集可以有文本，csv，数据库，我们有现成的数据库的连接库，这时候就要一个适配器来适配这个库，并实现数据采集的接口来实现桥接。</p>
+<h1 id="附"><a href="#附" class="headerlink" title="附"></a>附</h1><p>相关代码：<a href="https://github.com/zhaohaoren/design_pattern_tutorial">https://github.com/zhaohaoren/design_pattern_tutorial</a></p>
+<p>如有代码和文章问题，还请指正！感谢！</p>
+</div><script src="/js/highlight.min.js"></script><script src="/js/jquery.min.js"></script><script src="/js/main.js"></script></body></html>
