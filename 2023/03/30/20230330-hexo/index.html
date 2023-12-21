@@ -1,0 +1,92 @@
+<!DOCTYPE html><html><head><title>Hexo 写博客记要</title><meta name="referrer" content="no-referrer"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=0.5"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="stylesheet" href="/css/highlight/xcode.min.css"><link rel="stylesheet" href="/css/bootstrap/bootstrap-tooltips.css"><link rel="stylesheet" href="/css/post.css"><script src="/js/jquery.min.js"></script><meta name="generator" content="Hexo 6.1.0"></head><body><script>if (/mobile/i.test(navigator.userAgent) || /android/i.test(navigator.userAgent)) {
+  document.body.classList.add('mobile')
+}</script><div><div class="inner"><h1>Hexo 写博客记要</h1><div class="time">2023-03-30</div><p>这里只记录我自己使用hexo写博客的一系列的相关备忘记录。</p>
+<h2 id="相关工具"><a href="#相关工具" class="headerlink" title="相关工具"></a>相关工具</h2><ol>
+<li>写作工具<ul>
+<li>typora + picGo + gitee</li>
+<li>type mac 破解<ul>
+<li>文件夹&#x2F;Applications&#x2F;Typora.app&#x2F;Contents&#x2F;Resources&#x2F;TypeMark下搜索<a href="https://store.typora.io/">https://store.typora.io/</a> 点击LicenseIndex文件</li>
+<li>找到代码片段： <code>e.hasActivated = &quot;true&quot; == &quot;true&quot;</code> 改成这个</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>hexo使用<ul>
+<li>hexo + github pages</li>
+</ul>
+</li>
+</ol>
+<h2 id="写作工具"><a href="#写作工具" class="headerlink" title="写作工具"></a>写作工具</h2><ul>
+<li><p>typora下载（下载老版本不收费）</p>
+</li>
+<li><p>设置图床工具</p>
+<ul>
+<li>创建gitee<strong>公开</strong>仓库，并在个人设置里面创建一个私人令牌（下面picgo需要用的token）</li>
+</ul>
+<p><img src="https://gitee.com/zhaohaoren/blog-pic/raw/master/image-20230330175230675.png" alt="image-20230330175230675"></p>
+<ul>
+<li>下载picgo<ul>
+<li><a href="https://picgo.github.io/PicGo-Doc/zh/guide/#%E4%B8%8B%E8%BD%BD%E5%AE%89%E8%A3%85">https://picgo.github.io/PicGo-Doc/zh/guide/#下载安装</a></li>
+<li>安装插件 <img src="https://gitee.com/zhaohaoren/blog-pic/raw/master/image-20230330175345445.png" alt="image-20230330175345445"></li>
+<li>填入相关配置 <img src="https://gitee.com/zhaohaoren/blog-pic/raw/master/image-20230330175512241.png" alt="image-20230330175512241" style="zoom: 80%;" /></li>
+</ul>
+</li>
+<li>配置typora</li>
+</ul>
+<img src="https://gitee.com/zhaohaoren/blog-pic/raw/master/image-20230330172321205.png" alt="image-20230330172321205" style="zoom:80%;" /></li>
+</ul>
+<p>这样，你粘贴到typora的图片就会自动上传到gitee上去了。</p>
+<h2 id="Hexo使用"><a href="#Hexo使用" class="headerlink" title="Hexo使用"></a>Hexo使用</h2><h3 id="前置环境"><a href="#前置环境" class="headerlink" title="前置环境"></a>前置环境</h3><ol>
+<li>git</li>
+<li>nodejs （node -v）</li>
+</ol>
+<h3 id="安装hexo"><a href="#安装hexo" class="headerlink" title="安装hexo"></a>安装hexo</h3><pre><code class="shell">npm install -g hexo-cli // 安装hexo
+mkdir demoBlog; cd demoBlog // 创建博客所在目录
+hexo init // 初始化hexo
+hexo s // 启动hexo，初始环境准备完成
+</code></pre>
+<h3 id="更改hexo样式"><a href="#更改hexo样式" class="headerlink" title="更改hexo样式"></a>更改hexo样式</h3><p>我选取的样式是：<a href="https://github.com/smallyunet/hexo-theme-yinwang">https://github.com/smallyunet/hexo-theme-yinwang</a></p>
+<pre><code class="shell">1. 进入hexo的主题目录
+cd themes
+2. 下载你喜欢的主题
+git clone https://github.com/smallyunet/hexo-theme-yinwang.git
+3.  更改 _config.yml的主题配置
+theme: hexo-theme-yinwang
+4. 按照主题的说明安装相关的依赖
+npm i --save hexo-renderer-pug
+npm i --save hexo-wordcount-sy
+npm install hexo-filter-mathjax --save
+5. 可以启动看看效果了
+hexo g &amp; hexo s
+</code></pre>
+<h3 id="主题的一些配置"><a href="#主题的一些配置" class="headerlink" title="主题的一些配置"></a>主题的一些配置</h3><p>参考 _config.yml 和 主题的 _config.yml</p>
+<h2 id="一些问题-amp-解决"><a href="#一些问题-amp-解决" class="headerlink" title="一些问题&amp;解决"></a>一些问题&amp;解决</h2><h3 id="图床302重定向不展示"><a href="#图床302重定向不展示" class="headerlink" title="图床302重定向不展示"></a>图床302重定向不展示</h3><p>因为gitee做了非本站访问则重定向，所以去掉refer</p>
+<p>layout.pug 中添加   meta(<em>name</em>&#x3D;”referrer”, <em>content</em>&#x3D;”no-referrer”)</p>
+<h3 id="展示公式"><a href="#展示公式" class="headerlink" title="展示公式"></a>展示公式</h3><ol>
+<li>需要安装 npm install hexo-filter-mathjax –save</li>
+<li>文章的顶部需要配置上 mathjax: true</li>
+</ol>
+<h3 id="微博功能"><a href="#微博功能" class="headerlink" title="微博功能"></a>微博功能</h3><ol>
+<li>在你的一个public项目下创建一个issue，比如我：在blog-source下创建<a href="https://github.com/zhaohaoren/blog-source/issues/10">micro-blog-2023</a> 的issue，一个年份为一个issue，该issue下的评论会展示到页面上</li>
+<li>修改 <code>themes\yinwang\scripts\index.js</code> 里面的 <code> /blog-source/issues/10/comments</code>  数字对应你创建issue的数字。以及评论抓取要生产的文件名。然后调用<code>get_microblog_data.sh</code> 脚本，抓取评论。<ul>
+<li>如果你今年的数量大于500了 就要分页查询，然后通过merge进行合并。调用merge的脚本。</li>
+</ul>
+</li>
+<li>如果想要添加新的一年份，需要修改 <ul>
+<li>themes\yinwang\layout\pages\ <strong>micro-blog.pug</strong><ul>
+<li>这里添加新的年份标签</li>
+</ul>
+</li>
+<li>themes\yinwang\source\js\micro-blog\ <strong>main.js</strong><ul>
+<li>这里复制如 <strong>getContent2023</strong> 方法，修改里面的一些参数</li>
+<li>结尾处调用这个方法即可</li>
+<li><strong>getActive</strong> 设置当前默认激活的标签页</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+</div></div></body><script src="/js/highlight.min.js"></script><script src="/js/main.js?v=1"></script><script src="/js/bootstrap/bootstrap.min.js"></script><script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-160006603-1"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-160006603-1');</script></html>

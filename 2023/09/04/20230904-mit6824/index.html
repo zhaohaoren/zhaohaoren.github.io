@@ -1,0 +1,225 @@
+<!DOCTYPE html><html><head><title>MIT6.824（2021）Notes</title><meta name="referrer" content="no-referrer"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=0.5"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="stylesheet" href="/css/highlight/xcode.min.css"><link rel="stylesheet" href="/css/bootstrap/bootstrap-tooltips.css"><link rel="stylesheet" href="/css/post.css"><script src="/js/jquery.min.js"></script><meta name="generator" content="Hexo 6.1.0"></head><body><script>if (/mobile/i.test(navigator.userAgent) || /android/i.test(navigator.userAgent)) {
+  document.body.classList.add('mobile')
+}</script><div><div class="inner"><h1>MIT6.824（2021）Notes</h1><div class="time">2023-09-04</div><h1 id="MIT6-824（2021）"><a href="#MIT6-824（2021）" class="headerlink" title="MIT6.824（2021）"></a>MIT6.824（2021）</h1><p>watch <a href="https://www.bilibili.com/video/BV16f4y1z7kn?p=1">MIT 6.824 2021 分布式系统</a> </p>
+<h2 id="Lecture-1-Introduction"><a href="#Lecture-1-Introduction" class="headerlink" title="Lecture 1 - Introduction"></a>Lecture 1 - Introduction</h2><ul>
+<li>why？<ul>
+<li>连接分享多个物理机</li>
+<li>增加并行能力</li>
+<li>容错</li>
+<li>安全性（ 不同的数据，依据安全要求进行数据的隔离）</li>
+</ul>
+</li>
+<li>history<ul>
+<li>1980s，局域网诞生（AFS，DNS，Email）</li>
+<li>1990s，数据中心，大型网站的兴起（WebSearch，Shopping）</li>
+<li>2000s，云计算</li>
+<li>如今</li>
+</ul>
+</li>
+<li>challenge<ul>
+<li>很多并行部分</li>
+<li>必须处理部分失败</li>
+<li>实现性能的收益</li>
+</ul>
+</li>
+<li>course structure<ul>
+<li>课程</li>
+<li>论文</li>
+<li>实验（主要4个）<ul>
+<li>MapReduce</li>
+<li>Raft Replication</li>
+<li>Replication K&#x2F;V Service </li>
+<li>Sharded K&#x2F;V Service </li>
+<li>测试用例验证</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Focus<ul>
+<li>基础设施<ul>
+<li>存储</li>
+<li>计算</li>
+<li>通信</li>
+<li>抽象</li>
+</ul>
+</li>
+<li>主题<ul>
+<li>fault tolerance<ul>
+<li>可用性 - 主要用到的技术： 复制</li>
+<li>可恢复性 - 主要用到的技术：日志</li>
+</ul>
+</li>
+<li>consistency</li>
+<li>performance<ul>
+<li>吞吐</li>
+<li>低延迟</li>
+</ul>
+</li>
+<li>实现</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Paper: MapReduce PV动机<ul>
+<li>Google 发现很多工程师都有这种并行计算的需求，而且开发十分的耗时耗力，所以希望写一个库，让并行开发更简单，抽象出更加标准操作方式，让人用管里面具体的实现细节。</li>
+<li>M-R 实现该抽象的关键步骤：map，shuffle，reduce。</li>
+<li>MapReduce的容错<ul>
+<li>map可以运行2次吗？（yes）</li>
+<li>reduce 可以运行2次吗？（yes）</li>
+</ul>
+</li>
+<li>一些失败<ul>
+<li>调节器可以失败嘛？（No)</li>
+<li>慢worker？（yes)</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="Lecture-2-RPC-and-Threads"><a href="#Lecture-2-RPC-and-Threads" class="headerlink" title="Lecture 2 - RPC and Threads"></a>Lecture 2 - RPC and Threads</h2><ul>
+<li>Go<ul>
+<li>Good supports for thread&#x2F;rpc，所以很适合分布式系统</li>
+<li>GC、TypeSafe、Compiled（fast）、Simple</li>
+</ul>
+</li>
+<li>Go的多线程和多线程相关的知识讲解<ul>
+<li>多线程的一些挑战…</li>
+<li>Go对多线程的挑战处理<ul>
+<li>channels  （no sharing 内存）</li>
+<li>locks + condition variables</li>
+<li>并不具体争论哪个比哪个好，而是适合场景下使用对应的方式处理并发问题</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Go几个使用多线程的demo和discussion</li>
+<li>爬虫demo</li>
+<li>RPC<ul>
+<li>原理： 客户端 和 服务端 都会有对应的stub模块，将调用过程的方案和参数序列传输给服务，以及将结果反序列化给客户</li>
+</ul>
+</li>
+</ul>
+<h2 id="Lecture-3-GFS"><a href="#Lecture-3-GFS" class="headerlink" title="Lecture 3 - GFS"></a>Lecture 3 - GFS</h2><ul>
+<li><p>读GFS之后，再看这个</p>
+</li>
+<li><p>存储系统</p>
+<ul>
+<li>难点<ul>
+<li>多节点提供高性能</li>
+<li>容错</li>
+<li>复制机制</li>
+<li>强一致性</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>理想的一致性</p>
+<ul>
+<li>行为表现如一个单机系统</li>
+</ul>
+</li>
+<li><p>GFS</p>
+<ul>
+<li>在该论文之前，分布式系统的很多知识，比如复制容错这些已经很多论文都有描述和方案了，但是并没有一个具体落地实现的</li>
+<li>GFS 的出现其实也有一些非标准的（non-standard）实现<ul>
+<li>单master（单点故障问题）</li>
+<li>非强一致性</li>
+</ul>
+</li>
+<li>特性<ul>
+<li>大：支持很大的数据集</li>
+<li>快：能自动对数据进行sharding</li>
+<li>全局的：对外的所有客户端，都是一个文件系统</li>
+<li>容错：自动容错</li>
+</ul>
+</li>
+<li>论文解析</li>
+</ul>
+</li>
+</ul>
+<h2 id="Lecture-4-Primary-Backup-Replication"><a href="#Lecture-4-Primary-Backup-Replication" class="headerlink" title="Lecture 4 - Primary-Backup Replication"></a>Lecture 4 - Primary-Backup Replication</h2><ul>
+<li><p>复制针对的Failure</p>
+<ul>
+<li>Fail-Stop failure： 那些可以导致计算机无法运行的Failure，这是我们做复制最主要处理的</li>
+<li>复制并不处理这些逻辑：逻辑的bug、配置错误、恶意攻击等错误、不可抗拒力比如地震这些，整个集群全没了那种。</li>
+</ul>
+</li>
+<li><p>挑战（VM FT论文中有详细讨论）</p>
+<ul>
+<li><p>主节点如果失败？</p>
+<ul>
+<li>网络导致部分节点失联认为主节点失败，从节点重新选举主节点，会导致脑裂问题</li>
+</ul>
+</li>
+<li><p>如何保证主从同步</p>
+</li>
+<li><p>Failover 故障转移</p>
+<ul>
+<li>备用机器顶上失败的机器</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>实现主从复制的两种途径</p>
+<ul>
+<li><p>state transfer</p>
+<ul>
+<li>在某些时间点，生成对应的checkpoint，然后同步这个checkpoint到从节点。<ul>
+<li>缺点：如果一个操作，造成大量的写入，那么这次的checkpoint的同步操作就会十分的昂贵</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>state replicated</p>
+<ul>
+<li>主节点，将所有的操作同步给从节点，从节点确认后同步主节点，从而确认全部写入复制完成<ul>
+<li>主要使用复制状态机SRM的方式，本次lab也是采用该方式</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>复制的操作级别</p>
+<ul>
+<li>application level（文件的append，和写入）</li>
+<li>machine level（机器指令集级别的复制，这样application 不需要做任何修改，复制的操作是透明的）<ul>
+<li>VM-FT论文里提到：我们不需要做硬件的复制，而是可以用虚拟机</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>VM-FT 这篇论文，十分清晰的描述了 state replicate 的方法</p>
+</li>
+<li><p>论文中系统的概述</p>
+<ul>
+<li>首先，有个虚拟机监控器： 这是虚拟机的核心，基于硬件之上，符合虚拟机上的操作系统和底层硬件交互 </li>
+<li><img src="C:\Users\zhaohaoren\AppData\Roaming\Typora\typora-user-images\image-20230911113737083.png" alt="image-20230911113737083"></li>
+<li>如图，虚拟机监控器是预计OS和HW的一层中间层，该中间层</li>
+</ul>
+</li>
+<li><p>该设计的两个讨论  </p>
+<ul>
+<li>脑裂问题</li>
+<li>系统上看起来是我们将容错的部分，放到了存储服务器端，但事实并不是这样，为什么不是这样？</li>
+</ul>
+</li>
+<li><p>divergence sources（差异来源）</p>
+<ul>
+<li><p>一些非确定性的指令</p>
+<ul>
+<li>比如获取当前时间</li>
+<li>数据包的输入或者定时器的中断，执行指令的时候，可能数据包并不是同步的</li>
+<li>多核并发，论文解决方案，就是禁止多核（新的系统中，是支持的）</li>
+</ul>
+</li>
+<li><p>要解决这些差异来源，需要将上面的非确定性的指令，转为确定性的指令。</p>
+</li>
+</ul>
+</li>
+<li><h2 id="失败"><a href="#失败" class="headerlink" title="失败"></a>失败</h2></li>
+</ul>
+<h2 id="Lecture-5-Fault-Tolerance-Raft-1"><a href="#Lecture-5-Fault-Tolerance-Raft-1" class="headerlink" title="Lecture 5 - Fault Tolerance - Raft (1)"></a>Lecture 5 - Fault Tolerance - Raft (1)</h2><h2 id="Lecture-6-Lab-1-Q-amp-A"><a href="#Lecture-6-Lab-1-Q-amp-A" class="headerlink" title="Lecture 6 - Lab 1 Q&amp;A"></a>Lecture 6 - Lab 1 Q&amp;A</h2><h2 id="Lecture-7-Fault-Tolerance-Raft-2"><a href="#Lecture-7-Fault-Tolerance-Raft-2" class="headerlink" title="Lecture 7 - Fault Tolerance - Raft (2)"></a>Lecture 7 - Fault Tolerance - Raft (2)</h2><h2 id="Lecture-8-Lab-2A-2B-Q-amp-A"><a href="#Lecture-8-Lab-2A-2B-Q-amp-A" class="headerlink" title="Lecture 8 - Lab 2A_2B Q&amp;A"></a>Lecture 8 - Lab 2A_2B Q&amp;A</h2><h2 id="Lecture-9-Zookeeper"><a href="#Lecture-9-Zookeeper" class="headerlink" title="Lecture 9 - Zookeeper"></a>Lecture 9 - Zookeeper</h2><h2 id="Lecture-10-Guest-Lecture-on-Go-Russ-Cox"><a href="#Lecture-10-Guest-Lecture-on-Go-Russ-Cox" class="headerlink" title="Lecture 10 - Guest Lecture on Go - Russ Cox"></a>Lecture 10 - Guest Lecture on Go - Russ Cox</h2><h2 id="Lecture-11-Chain-Replication"><a href="#Lecture-11-Chain-Replication" class="headerlink" title="Lecture 11 - Chain Replication"></a>Lecture 11 - Chain Replication</h2><h2 id="Lecture-12-Cache-Consistency-Frangipani"><a href="#Lecture-12-Cache-Consistency-Frangipani" class="headerlink" title="Lecture 12 - Cache Consistency - Frangipani"></a>Lecture 12 - Cache Consistency - Frangipani</h2><h2 id="Lecture-13-Distributed-Transactions"><a href="#Lecture-13-Distributed-Transactions" class="headerlink" title="Lecture 13 - Distributed Transactions"></a>Lecture 13 - Distributed Transactions</h2><h2 id="Lecture-14-Spanner"><a href="#Lecture-14-Spanner" class="headerlink" title="Lecture 14 - Spanner"></a>Lecture 14 - Spanner</h2><h2 id="Lecture-15-Optimistic-Concurrency-Control-FaRM"><a href="#Lecture-15-Optimistic-Concurrency-Control-FaRM" class="headerlink" title="Lecture 15 - Optimistic Concurrency Control (FaRM)"></a>Lecture 15 - Optimistic Concurrency Control (FaRM)</h2><h2 id="Lecture-15-continued-Optimistic-Concurrency-Control-FaRM-pt-2"><a href="#Lecture-15-continued-Optimistic-Concurrency-Control-FaRM-pt-2" class="headerlink" title="Lecture 15 continued - Optimistic Concurrency Control (FaRM) pt. 2"></a>Lecture 15 continued - Optimistic Concurrency Control (FaRM) pt. 2</h2><h2 id="Lecture-16-Big-Data-Spark"><a href="#Lecture-16-Big-Data-Spark" class="headerlink" title="Lecture 16 - Big Data - Spark"></a>Lecture 16 - Big Data - Spark</h2><h2 id="Lecture-17-Cache-Consistency-Memcached-at-Facebook"><a href="#Lecture-17-Cache-Consistency-Memcached-at-Facebook" class="headerlink" title="Lecture 17 - Cache Consistency - Memcached at Facebook"></a>Lecture 17 - Cache Consistency - Memcached at Facebook</h2><h2 id="Lecture-18-Fork-Consistency-SUNDR"><a href="#Lecture-18-Fork-Consistency-SUNDR" class="headerlink" title="Lecture 18 - Fork Consistency, SUNDR"></a>Lecture 18 - Fork Consistency, SUNDR</h2><h2 id="Lecture-19-Peer-to-Peeer-Bitcoin"><a href="#Lecture-19-Peer-to-Peeer-Bitcoin" class="headerlink" title="Lecture 19 - Peer-to-Peeer - Bitcoin"></a>Lecture 19 - Peer-to-Peeer - Bitcoin</h2><h2 id="Lecture-20-Blockstack"><a href="#Lecture-20-Blockstack" class="headerlink" title="Lecture 20 - Blockstack"></a>Lecture 20 - Blockstack</h2><h2 id="Lecture-21-Project-Presentations"><a href="#Lecture-21-Project-Presentations" class="headerlink" title="Lecture 21 - Project Presentations"></a>Lecture 21 - Project Presentations</h2></div></div></body><script src="/js/highlight.min.js"></script><script src="/js/main.js?v=1"></script><script src="/js/bootstrap/bootstrap.min.js"></script><script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-160006603-1"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-160006603-1');</script></html>

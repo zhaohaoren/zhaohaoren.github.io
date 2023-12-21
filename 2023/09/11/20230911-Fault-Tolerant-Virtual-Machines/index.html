@@ -1,0 +1,20 @@
+<!DOCTYPE html><html><head><title>PaperReading - The Design of a Practical System for Fault-Tolerant Virtual Machines</title><meta name="referrer" content="no-referrer"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=0.5"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="stylesheet" href="/css/highlight/xcode.min.css"><link rel="stylesheet" href="/css/bootstrap/bootstrap-tooltips.css"><link rel="stylesheet" href="/css/post.css"><script src="/js/jquery.min.js"></script><meta name="generator" content="Hexo 6.1.0"></head><body><script>if (/mobile/i.test(navigator.userAgent) || /android/i.test(navigator.userAgent)) {
+  document.body.classList.add('mobile')
+}</script><div><div class="inner"><h1>PaperReading - The Design of a Practical System for Fault-Tolerant Virtual Machines</h1><div class="time">2023-09-11</div><h1 id="《一个可行的虚拟机的容错系统设计》"><a href="#《一个可行的虚拟机的容错系统设计》" class="headerlink" title="《一个可行的虚拟机的容错系统设计》"></a>《一个可行的虚拟机的容错系统设计》</h1><h2 id="ABSTRACT"><a href="#ABSTRACT" class="headerlink" title="ABSTRACT"></a>ABSTRACT</h2><ul>
+<li>我们已经实现了一个商用企业级的容错虚拟机系统，方法是通过backup 服务器复制primary 服务器的执行。</li>
+<li>该复制容错系统，对app层的性能影响低于10%。</li>
+<li>对运行几个app的系统来说，只需要不到20M&#x2F;s的带宽，来保证主服务和从服务的同步。</li>
+<li>为使得容错系统使用简单，能自动恢复，除了简单的复制VM的执行过程，还需要许多其他的组件支持，后面会讨论。</li>
+</ul>
+<h2 id="INTRODUCTION"><a href="#INTRODUCTION" class="headerlink" title="INTRODUCTION"></a>INTRODUCTION</h2><p>实现一个容错服务器常见方式：主备机制，即当主服务器失败的时候，总有一个备份节点可以进行替代。这就要求备份节点和主节点在任何时间节点，他们的状态需要保持一致。从而让外部使用方看起来，感觉没有故障，其实是被隐藏了。</p>
+<p>备份节点复制主节点状态的方法有：</p>
+<ol>
+<li>将主服务器的中包括CPU, memory, I&#x2F;O设备等所有状态数据，不断的发送给从节点[相当于完全拷贝]。但这种发送状态的方法，尤其是涉及到内存中的变更，需要很大的带宽。</li>
+<li>使用类似于状态机的机制，通过让主备节点按照相同的顺序执行相同的输入请求来保持同步，这样可以就可以减少贷款。但是大多数服务器或服务会有一些不确定性的操作（比如不同机器的时钟不一样，那么取时钟的操作获得的结果也不同），因此需要使用额外的协调机制来确保主备同步。但是，这个协调机制实现也是十分困难的。</li>
+</ol>
+<p>基于2的协调问题，对于物理机来说可能不好解决，但是对于虚拟机，状态机的方式是很好的方式。<strong>一台VM可以被当作一个定义好的状态机，它的所有操作都是虚拟化的，包括它的设备都是虚拟化的</strong>。虽然它和物理机一样需要协同哪些非确定性操作，但是VM可以通过虚拟机管理程序（hypervisor）来完全控制，通过这个控制器可以获取到主服务器上的那些非确定性操作的相关信息，然后在备份服务器上重放这些操作。</p>
+<p>​	</p>
+</div></div></body><script src="/js/highlight.min.js"></script><script src="/js/main.js?v=1"></script><script src="/js/bootstrap/bootstrap.min.js"></script><script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-160006603-1"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-160006603-1');</script></html>

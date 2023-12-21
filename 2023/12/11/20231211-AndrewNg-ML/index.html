@@ -1,0 +1,32 @@
+<!DOCTYPE html><html><head><title>吴恩达 - 机器学习</title><meta name="referrer" content="no-referrer"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=0.5"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="stylesheet" href="/css/highlight/xcode.min.css"><link rel="stylesheet" href="/css/bootstrap/bootstrap-tooltips.css"><link rel="stylesheet" href="/css/post.css"><script src="/js/jquery.min.js"></script><meta name="generator" content="Hexo 6.1.0"></head><body><script>if (/mobile/i.test(navigator.userAgent) || /android/i.test(navigator.userAgent)) {
+  document.body.classList.add('mobile')
+}</script><div><div class="inner"><h1>吴恩达 - 机器学习</h1><div class="time">2023-12-11</div><h1 id="机器学习"><a href="#机器学习" class="headerlink" title="机器学习"></a>机器学习</h1><p>机器学习算法</p>
+<ul>
+<li>supervised learning  监督学习</li>
+<li>unsupervised learning 非监督学习</li>
+<li>reinforcement learning 强化学习</li>
+</ul>
+<p>目前最常用的是监督和非监督学习</p>
+<h2 id="监督学习"><a href="#监督学习" class="headerlink" title="监督学习"></a>监督学习</h2><p>机器学习创造的99%经济效益都来自于监督学习。</p>
+<p><strong>定义：</strong>学习输入和输出之间的关系，从而能够预测新的输入对应的输出的机器学习方法。即有给定输入和输出数据来训练出一个模型，用来预测新的输入的输出值。</p>
+<h3 id="回归算法"><a href="#回归算法" class="headerlink" title="回归算法"></a>回归算法</h3><p><u>Regression Algorithm</u></p>
+<p>比如：给出一组数据，房子大小和房子价格，通过这些数据拟合出对应的函数，来预测某个房子大小对应的价格。</p>
+<h3 id="分类算法"><a href="#分类算法" class="headerlink" title="分类算法"></a>分类算法</h3><p><u>Classification Algorithm</u></p>
+<p>比如：区分肿块是恶性的还是良性的，输入肿块大小，年龄等维度数据，以及肿块良恶性数据。然后预测输入肿块大小和年龄来预测肿块是恶是良。</p>
+<p>和回归算法不一样的是，<strong>分类算法只是为了预测少部分结果，而回归算法预测的结果集是无限的。</strong></p>
+<h2 id="非监督学习"><a href="#非监督学习" class="headerlink" title="非监督学习"></a>非监督学习</h2><h3 id="聚类"><a href="#聚类" class="headerlink" title="聚类"></a>聚类</h3><p>clustering</p>
+<p>非监督就是给的数据集合的输出，没有给结果的标签，比如肿块的恶良。需要我们对这些输入，只讲这些数据进行聚类。</p>
+<h3 id="异常检测"><a href="#异常检测" class="headerlink" title="异常检测"></a>异常检测</h3><p>Anormaly detection</p>
+<p>比如检测金融系统中的异常事件，异常交易等。</p>
+<h3 id="降维"><a href="#降维" class="headerlink" title="降维"></a>降维</h3><p>Dimensionality reduction</p>
+<p>将大数据集神奇的压缩成一个小得多的数据集，同时丢失尽量少的信息。</p>
+<h1 id="线性回归模型"><a href="#线性回归模型" class="headerlink" title="线性回归模型"></a>线性回归模型</h1><p>就是回归算法，使用直线（y&#x3D;wx+b) 来拟合训练集。（w，b 被称为模型的参数）</p>
+<h1 id="代价函数"><a href="#代价函数" class="headerlink" title="代价函数"></a>代价函数</h1><p>我们拟合训练集得出的模型，比如线性的y&#x3D;wx+b。这里面wb作为模型的参数，选择什么参数决定了模型和数据的拟合程度。</p>
+<p>为了评估w，b对训练集的拟合程度，便需要这cost函数。修改w和b让cost函数的值越来越小，则拟合度就越高。</p>
+<p><img src="https://raw.githubusercontent.com/zhaohaoren/image/main/image-20231221205041801.png?token=ALQJOEXDPTAJVP7BUMOH4RTFQQ2N6" alt="image-20231221205041801"></p>
+<p>针对这样的一个线性回归模型，我们可以用下面平方差来作为cost函数（平方差cost函数依然是线性回归最常用的cost函数）</p>
+<p><img src="https://raw.githubusercontent.com/zhaohaoren/image/main/image-20231221204728267.png?token=ALQJOER2J4JWIT72VDVFJBDFQQ2CO" alt="image-20231221204728267"></p>
+<h1 id="梯度下降"><a href="#梯度下降" class="headerlink" title="梯度下降"></a>梯度下降</h1><h1 id="Week-03"><a href="#Week-03" class="headerlink" title="Week 03"></a>Week 03</h1><h1 id="Week-04"><a href="#Week-04" class="headerlink" title="Week 04"></a>Week 04</h1><h1 id="Week-01"><a href="#Week-01" class="headerlink" title="Week 01"></a>Week 01</h1><h1 id="Week-02"><a href="#Week-02" class="headerlink" title="Week 02"></a>Week 02</h1><h1 id="Week-03-1"><a href="#Week-03-1" class="headerlink" title="Week 03"></a>Week 03</h1></div></div></body><script src="/js/highlight.min.js"></script><script src="/js/main.js?v=1"></script><script src="/js/bootstrap/bootstrap.min.js"></script><script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-160006603-1"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-160006603-1');</script></html>
